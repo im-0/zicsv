@@ -31,7 +31,7 @@ if [ "${1}" = "before_script" ]; then
     fi
 elif [ "${1}" = "script" ]; then
     if is_nightly_for_clippy; then
-        cargo clippy --all
+        cargo clippy --all --features unstable --all-targets
     fi
 
     for crate in $( workspace_members ); do
