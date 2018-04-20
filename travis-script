@@ -1,0 +1,74 @@
+#!/bin/sh -xeu
+
+ZI_DUMP_CSV="https://raw.githubusercontent.com/zapret-info/z-i/master/dump.csv"
+CURL_OPTS="--connect-timeout 15"
+
+is_nightly() {
+    # Fixed version of nightly for clippy.
+    echo "${TRAVIS_RUST_VERSION}" | grep -qe "^nightly"
+}
+
+is_nightly_for_clippy() {
+    # Fixed version of nightly for clippy.
+    echo "${TRAVIS_RUST_VERSION}" | grep -qe "^nightly-.*"
+}
+
+workspace_members() {
+    sed -ne 's,^ *"\([^ "]*\)".*$,\1,p' <Cargo.toml
+}
+
+crate_has_unstable_feature() {
+    grep -qe "^ *unstable *= *\[ *\] *$" Cargo.toml
+}
+
+is_binary_crate() {
+    test -e src/main.rs
+}
+
+if [ "${1}" = "before_script" ]; then
+    if is_nightly_for_clippy; then
+        cargo install clippy --version "${CLIPPY_VERSION}" --force
+    fi
+elif [ "${1}" = "script" ]; then
+    if is_nightly_for_clippy; then
+        cargo clippy --all
+    fi
+
+    for crate in $( workspace_members ); do
+        (
+            cd "${crate}"
+
+            if is_nightly; then
+                targets="--all-targets"
+
+                if crate_has_unstable_feature; then
+                    features="--features unstable"
+                else
+                    features=""
+                fi
+            else
+                if is_binary_crate; then
+                    targets=""
+                else
+                    targets="--all-targets"
+                fi
+
+                features=""
+            fi
+
+            cargo build --verbose $targets $features
+            cargo test --verbose $features
+
+            cargo build --release --verbose $targets $features
+            cargo test --release --verbose $features
+        )
+    done
+
+    curl $CURL_OPTS --output "./dump.csv" "${ZI_DUMP_CSV}"
+    for build_type in "debug" "release"; do
+        "./target/${build_type}/zicsv-tool" --input "./dump.csv" into-json --disable-pretty >/dev/null
+    done
+else
+    printf "Unknown command: %s\n" "${1}" >&2
+    exit 1
+fi

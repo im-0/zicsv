@@ -1,0 +1,23 @@
+language: rust
+
+rust:
+  - stable
+  - beta
+  - nightly
+
+  # For clippy.
+  - nightly-2017-12-28
+
+env:
+  global:
+    - CLIPPY_VERSION=0.0.177
+
+before_script:
+  - ./travis-script before_script
+
+script:
+  - ./travis-script script
+
+os:
+  - linux
+  - osx

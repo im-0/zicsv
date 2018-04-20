@@ -1,0 +1,20 @@
+[package]
+name = "zicsv-tool"
+description = "Parser tool for Zapret-Info CSV lists"
+version = "0.0.1"
+authors = ["Ivan Mironov <mironov.ivan@gmail.com>"]
+license = "MIT/Apache-2.0"
+keywords = ["zapret-info", "parser"]
+categories = []
+publish = false
+repository = "https://github.com/im-0/zicsv"
+documentation = "https://github.com/im-0/zicsv"
+
+[dependencies]
+failure = { version = "*", default_features = false, features = ["std"] }
+serde = { version = "*", default_features = false }
+serde_derive = { version = "*", default_features = false }
+serde_json = { version = "*", default_features = false }
+structopt = { version = "*", default_features = false }
+structopt-derive = { version = "*", default_features = false }
+zicsv = { version = "*", path = "../zicsv", features = ["serialization"] }

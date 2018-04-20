@@ -1,0 +1,3 @@
+#!/bin/sh -eu
+
+exec cargo fmt --all -- --write-mode overwrite
