@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 #![warn(unused_results)]
+#![cfg_attr(feature = "cargo-clippy", warn(empty_line_after_outer_attr))]
 #![cfg_attr(feature = "cargo-clippy", warn(filter_map))]
 #![cfg_attr(feature = "cargo-clippy", warn(if_not_else))]
 #![cfg_attr(feature = "cargo-clippy", warn(mut_mut))]
@@ -10,6 +11,7 @@
 #![cfg_attr(feature = "cargo-clippy", warn(wrong_pub_self_convention))]
 #![cfg_attr(feature = "cargo-clippy", warn(use_self))]
 #![cfg_attr(feature = "cargo-clippy", warn(used_underscore_binding))]
+#![cfg_attr(feature = "cargo-clippy", warn(else_if_without_else))]
 
 #[macro_use]
 extern crate failure;
