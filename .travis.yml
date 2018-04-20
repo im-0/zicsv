@@ -6,11 +6,11 @@ rust:
   - nightly
 
   # For clippy.
-  - nightly-2017-12-28
+  - nightly-2018-04-19
 
 env:
   global:
-    - CLIPPY_VERSION=0.0.177
+    - CLIPPY_VERSION=0.0.195
 
 before_script:
   - ./travis-script before_script
