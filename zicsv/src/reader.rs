@@ -337,7 +337,7 @@ mod tests {
         assert!(record.document_id.is_empty());
         assert_eq!(
             record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 01, 02)
+            chrono::NaiveDate::from_ymd(2017, 1, 2)
         );
 
         let record = from_str(
@@ -355,7 +355,7 @@ mod tests {
         assert_eq!(record.document_id, "id string");
         assert_eq!(
             record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 01, 02)
+            chrono::NaiveDate::from_ymd(2017, 1, 2)
         );
 
         let record = from_str(
@@ -373,7 +373,7 @@ mod tests {
         assert_eq!(record.document_id, "id string");
         assert_eq!(
             record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 01, 02)
+            chrono::NaiveDate::from_ymd(2017, 1, 2)
         );
 
         let record = from_str(
@@ -391,7 +391,7 @@ mod tests {
         assert_eq!(record.document_id, "id string");
         assert_eq!(
             record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 01, 02)
+            chrono::NaiveDate::from_ymd(2017, 1, 2)
         );
 
         let record = from_str(
@@ -414,7 +414,7 @@ mod tests {
         assert!(record.document_id.is_empty());
         assert_eq!(
             record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 01, 02)
+            chrono::NaiveDate::from_ymd(2017, 1, 2)
         );
 
         let record = from_str(
@@ -439,7 +439,7 @@ mod tests {
         assert!(record.document_id.is_empty());
         assert_eq!(
             record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 01, 02)
+            chrono::NaiveDate::from_ymd(2017, 1, 2)
         );
 
         let record = from_str(
@@ -466,7 +466,7 @@ mod tests {
         assert!(record.document_id.is_empty());
         assert_eq!(
             record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 01, 02)
+            chrono::NaiveDate::from_ymd(2017, 1, 2)
         );
     }
 

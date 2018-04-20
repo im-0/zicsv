@@ -163,7 +163,10 @@ fn real_main() -> Result<(), failure::Error> {
             select(&sopts, reader)
         },
 
-        Command::Updated => Ok(println!("{}", reader.get_timestamp())),
+        Command::Updated => {
+            println!("{}", reader.get_timestamp());
+            Ok(())
+        },
     }
 }
 
