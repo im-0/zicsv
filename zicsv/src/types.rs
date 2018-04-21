@@ -11,7 +11,7 @@ use url_serde;
 use ipnet_serde;
 
 /// Internet address blocked by Roskomnadzor.
-#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub enum Address {
     /// Blocked by IPv4 address.
@@ -36,7 +36,7 @@ pub type Addresses = Vec<Address>;
 pub type Date = chrono::NaiveDate;
 
 /// One record from CSV.
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialization", derive(Serialize, Deserialize))]
 pub struct Record {
     /// Blocked addresses.
