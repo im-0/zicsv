@@ -155,7 +155,7 @@ where
         for part in addr_str.split(delim) {
             let part = part.trim();
             if !part.is_empty() {
-                func(part)?;
+                func(part).map_err(|error| error.context(format!("String: \"{}\"", part)))?;
             }
         }
 
@@ -208,17 +208,20 @@ where
     }
 
     fn parse_record(record: &StringRecord) -> Result<types::Record, failure::Error> {
+        use failure::Fail;
+
         let mut addresses = types::Addresses::new();
 
-        Self::parse_ipv4_addresses(&record.0, &mut addresses)?;
-        Self::parse_domain_name(&record.1, &mut addresses)?;
-        Self::parse_url(&record.2, &mut addresses)?;
+        Self::parse_ipv4_addresses(&record.0, &mut addresses).map_err(|error| error.context("Field: IPv4 addresses"))?;
+        Self::parse_domain_name(&record.1, &mut addresses).map_err(|error| error.context("Field: domain names"))?;
+        Self::parse_url(&record.2, &mut addresses).map_err(|error| error.context("Field: URLs"))?;
 
         Ok(types::Record {
             addresses,
             organization: record.3.trim().into(),
             document_id: record.4.trim().into(),
-            document_date: Self::parse_document_date(&record.5)?,
+            document_date: Self::parse_document_date(&record.5).map_err(
+                |error| error.context(format!("String: \"{}\"", record.5)).context("Field: document date"))?,
 
             __may_be_extended: (),
         })
@@ -239,7 +242,7 @@ where
                 .map_err(|csv_err| csv_err.into())
                 .and_then(|raw_record| Self::str_rec_from_cp1251(&raw_record))
                 .and_then(|str_record| Self::parse_record(&str_record))
-                .map_err(|error| error.context(format!("Line {}", self.line_n)).into())
+                .map_err(|error| error.context(format!("Line number: {}", self.line_n)).into())
         })
     }
 }
