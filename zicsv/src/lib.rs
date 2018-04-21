@@ -38,6 +38,8 @@ extern crate serde;
 #[cfg(feature = "serialization")]
 #[macro_use]
 extern crate serde_derive;
+#[cfg(test)]
+extern crate serde_json;
 
 extern crate url;
 #[cfg(feature = "serialization")]

@@ -89,8 +89,95 @@ impl std::fmt::Display for Record {
                 for address in addresses_iter {
                     write!(formatter, ", {}", address)?;
                 }
+                write!(formatter, " ")?;
             }
-            write!(formatter, " (\"{}\", \"{}\"/{}", self.organization, self.document_id, self.document_date)
+            write!(formatter, "(\"{}\", \"{}\"/{})", self.organization, self.document_id, self.document_date)
         }
+    }
+}
+
+impl std::default::Default for Record {
+    fn default() -> Self {
+        Self {
+            addresses: Vec::default(),
+            organization: String::default(),
+            document_id: String::default(),
+            document_date: chrono::NaiveDate::from_ymd(1970, 1, 1),
+
+            __may_be_extended: (),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono;
+
+    #[test]
+    fn string_from_address() {
+        assert_eq!(
+            String::from(&super::Address::IPv4("1.2.3.4".parse().unwrap())),
+            "1.2.3.4"
+        );
+
+        assert_eq!(
+            String::from(&super::Address::IPv4Network("1.2.3.0/24".parse().unwrap())),
+            "1.2.3.0/24"
+        );
+
+        assert_eq!(
+            String::from(&super::Address::DomainName("example.com".into())),
+            "example.com"
+        );
+
+        assert_eq!(
+            String::from(&super::Address::URL("http://example.com/".parse().unwrap())),
+            "http://example.com/"
+        );
+    }
+
+    #[test]
+    fn display_record() {
+        let record = super::Record {
+            addresses: vec![],
+            organization: "Test org".into(),
+            document_id: "Test document ID".into(),
+            document_date: chrono::NaiveDate::from_ymd(2017, 1, 2),
+
+            ..super::Record::default()
+        };
+        assert_eq!(
+            format!("{}", record),
+            "(\"Test org\", \"Test document ID\"/2017-01-02)"
+        );
+
+        let record = super::Record {
+            addresses: vec![super::Address::DomainName("example.com".into())],
+            organization: "Test org".into(),
+            document_id: "Test document ID".into(),
+            document_date: chrono::NaiveDate::from_ymd(2017, 1, 2),
+
+            ..super::Record::default()
+        };
+        assert_eq!(
+            format!("{}", record),
+            "example.com (\"Test org\", \"Test document ID\"/2017-01-02)"
+        );
+
+        let record = super::Record {
+            addresses: vec![
+                super::Address::DomainName("example.com".into()),
+                super::Address::IPv4("1.2.3.4".parse().unwrap()),
+            ],
+            organization: "Test org".into(),
+            document_id: "Test document ID".into(),
+            document_date: chrono::NaiveDate::from_ymd(2017, 1, 2),
+
+            ..super::Record::default()
+        };
+        assert_eq!(
+            format!("{}", record),
+            "example.com, 1.2.3.4 (\"Test org\", \"Test document ID\"/2017-01-02)"
+        );
     }
 }
