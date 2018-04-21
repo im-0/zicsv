@@ -77,3 +77,20 @@ impl std::fmt::Display for Address {
         write!(formatter, "{}", String::from(self))
     }
 }
+
+// TODO: Implement TryFrom<String> for Address
+
+impl std::fmt::Display for Record {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        {
+            let mut addresses_iter = self.addresses.iter();
+            if let Some(first_address) = addresses_iter.next() {
+                write!(formatter, "{}", first_address)?;
+                for address in addresses_iter {
+                    write!(formatter, ", {}", address)?;
+                }
+            }
+            write!(formatter, " (\"{}\", \"{}\"/{}", self.organization, self.document_id, self.document_date)
+        }
+    }
+}
