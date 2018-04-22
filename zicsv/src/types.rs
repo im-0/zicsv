@@ -91,7 +91,11 @@ impl std::fmt::Display for Record {
                 }
                 write!(formatter, " ")?;
             }
-            write!(formatter, "(\"{}\", \"{}\"/{})", self.organization, self.document_id, self.document_date)
+            write!(
+                formatter,
+                "(\"{}\", \"{}\"/{})",
+                self.organization, self.document_id, self.document_date
+            )
         }
     }
 }
@@ -151,10 +155,7 @@ mod tests {
 
             ..super::Record::default()
         };
-        assert_eq!(
-            format!("{}", record),
-            "(\"Test org\", \"Test document ID\"/2017-01-02)"
-        );
+        assert_eq!(format!("{}", record), "(\"Test org\", \"Test document ID\"/2017-01-02)");
 
         let record = super::Record {
             addresses: vec![super::Address::DomainName("example.com".into())],

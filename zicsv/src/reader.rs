@@ -44,14 +44,8 @@ where
         let (_, updated) = first_line.split_at(space_pos + 1);
         let updated = updated.trim();
 
-        let updated = chrono::DateTime::parse_from_str(updated, "%Y-%m-%d %H:%M:%S %z").map_err(|error| {
-            format_err!(
-                "Invalid date and time: \"{}\" (\"{}\": {})",
-                first_line,
-                updated,
-                error
-            )
-        })?;
+        let updated = chrono::DateTime::parse_from_str(updated, "%Y-%m-%d %H:%M:%S %z")
+            .map_err(|error| format_err!("Invalid date and time: \"{}\" (\"{}\": {})", first_line, updated, error))?;
         Ok(updated.naive_utc())
     }
 
@@ -132,11 +126,7 @@ where
     }
 
     fn str_rec_from_cp1251(raw_vec: &[Vec<u8>]) -> Result<StringRecord, failure::Error> {
-        ensure!(
-            raw_vec.len() == 6,
-            "Invalid number of fields: {} != 6",
-            raw_vec.len()
-        );
+        ensure!(raw_vec.len() == 6, "Invalid number of fields: {} != 6", raw_vec.len());
 
         Ok((
             Self::str_from_cp1251(&raw_vec[0])?,
@@ -220,8 +210,11 @@ where
             addresses,
             organization: record.3.trim().into(),
             document_id: record.4.trim().into(),
-            document_date: Self::parse_document_date(&record.5).map_err(
-                |error| error.context(format!("String: \"{}\"", record.5)).context("Field: document date"))?,
+            document_date: Self::parse_document_date(&record.5).map_err(|error| {
+                error
+                    .context(format!("String: \"{}\"", record.5))
+                    .context("Field: document date")
+            })?,
 
             __may_be_extended: (),
         })
@@ -338,10 +331,7 @@ mod tests {
         assert!(record.addresses.is_empty());
         assert!(record.organization.is_empty());
         assert!(record.document_id.is_empty());
-        assert_eq!(
-            record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 1, 2)
-        );
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
         let record = from_str(
             "\
@@ -356,10 +346,7 @@ mod tests {
         assert!(record.addresses.is_empty());
         assert_eq!(record.organization, "org string");
         assert_eq!(record.document_id, "id string");
-        assert_eq!(
-            record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 1, 2)
-        );
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
         let record = from_str(
             "\
@@ -374,10 +361,7 @@ mod tests {
         assert!(record.addresses.is_empty());
         assert_eq!(record.organization, "org string");
         assert_eq!(record.document_id, "id string");
-        assert_eq!(
-            record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 1, 2)
-        );
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
         let record = from_str(
             "\
@@ -392,10 +376,7 @@ mod tests {
         assert!(record.addresses.is_empty());
         assert_eq!(record.organization, "org;string");
         assert_eq!(record.document_id, "id string");
-        assert_eq!(
-            record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 1, 2)
-        );
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
         let record = from_str(
             "\
@@ -415,10 +396,7 @@ mod tests {
         assert_eq!(record.addresses, addresses);
         assert!(record.organization.is_empty());
         assert!(record.document_id.is_empty());
-        assert_eq!(
-            record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 1, 2)
-        );
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
         let record = from_str(
             "\
@@ -440,10 +418,7 @@ mod tests {
         assert_eq!(record.addresses, addresses);
         assert!(record.organization.is_empty());
         assert!(record.document_id.is_empty());
-        assert_eq!(
-            record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 1, 2)
-        );
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
         let record = from_str(
             "\
@@ -467,10 +442,7 @@ mod tests {
         assert_eq!(record.addresses, addresses);
         assert!(record.organization.is_empty());
         assert!(record.document_id.is_empty());
-        assert_eq!(
-            record.document_date,
-            chrono::NaiveDate::from_ymd(2017, 1, 2)
-        );
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
     }
 
     #[test]
