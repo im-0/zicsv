@@ -1,6 +1,6 @@
 #!/bin/sh -xeu
 
-ZI_DUMP_CSV="https://raw.githubusercontent.com/zapret-info/z-i/master/dump.csv"
+ZI_DUMP_CSV="https://github.com/zapret-info/z-i/raw/0f69ad8852a79fa3ba3a9a788b8e2157cd1da9f7/dump.csv"
 CURL_OPTS="--connect-timeout 15"
 
 is_nightly() {
