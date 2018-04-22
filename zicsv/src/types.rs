@@ -131,6 +131,11 @@ mod tests {
         );
 
         assert_eq!(
+            String::from(&super::Address::WildcardDomainName("*.example.com".into())),
+            "*.example.com"
+        );
+
+        assert_eq!(
             String::from(&super::Address::URL("http://example.com/".parse().unwrap())),
             "http://example.com/"
         );
