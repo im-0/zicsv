@@ -53,7 +53,7 @@ where
     /// Parse data from buffered reader.
     pub fn from_buf_reader(mut reader: StreamReader) -> Result<Self, failure::Error> {
         Ok(Self {
-            updated: Self::parse_update_datetime(&mut reader).map_err(|error| error.context("Line 1"))?,
+            updated: Self::parse_update_datetime(&mut reader).map_err(|error| error.context("Line number: 1"))?,
             csv_reader: csv::Reader::from_reader(reader)
                 .delimiter(b';')
                 .has_headers(false)
@@ -81,7 +81,7 @@ impl Reader<std::io::BufReader<std::fs::File>> {
     pub fn from_file<Path: AsRef<std::path::Path>>(path: Path) -> Result<Self, failure::Error> {
         // TODO: Provide file name as context for Records::next().
         let path_str = format!("{}", path.as_ref().to_string_lossy());
-        Self::from_file_no_context(path).map_err(|error| error.context(format!("File \"{}\"", path_str)).into())
+        Self::from_file_no_context(path).map_err(|error| error.context(format!("File: \"{}\"", path_str)).into())
     }
 }
 
