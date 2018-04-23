@@ -25,7 +25,7 @@ mod serialize_records {
         use serde::ser::SerializeSeq;
 
         let mut records_serializer = value.borrow_mut();
-        let RecordsSerializer {
+        let &mut RecordsSerializer {
             ref mut errors,
             ref mut records,
         } = records_serializer.deref_mut();
