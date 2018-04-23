@@ -15,7 +15,7 @@ pub struct SelectOptions {
 pub fn select<StreamWriter>(
     options: &SelectOptions,
     mut reader: Box<zicsv::GenericReader>,
-    mut writer: StreamWriter,
+    writer: &mut StreamWriter,
 ) -> Result<(), failure::Error>
 where
     StreamWriter: std::io::Write,

@@ -94,7 +94,7 @@ fn real_main() -> Result<(), failure::Error> {
     let mut writer = std::io::BufWriter::new(stdout.lock());
 
     match options.command {
-        Command::IntoJson { disable_pretty, .. } => into_json::into_json(reader, writer, disable_pretty),
+        Command::IntoJson { disable_pretty, .. } => into_json::into_json(reader, &mut writer, disable_pretty)?,
 
         Command::Select {
             ipv4,
@@ -115,14 +115,14 @@ fn real_main() -> Result<(), failure::Error> {
                 "At least one selection should be specified"
             );
 
-            select::select(&sopts, reader, writer)
+            select::select(&sopts, reader, &mut writer)?
         },
 
-        Command::Updated => {
-            writeln!(writer, "{}", reader.get_timestamp())?;
-            Ok(())
-        },
+        Command::Updated => writeln!(writer, "{}", reader.get_timestamp())?,
     }
+    writer.flush()?;
+
+    Ok(())
 }
 
 fn main() {

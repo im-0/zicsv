@@ -53,7 +53,7 @@ struct List<'a> {
 
 pub fn into_json<StreamWriter>(
     mut reader: Box<zicsv::GenericReader>,
-    writer: StreamWriter,
+    writer: &mut StreamWriter,
     disable_pretty: bool,
 ) -> Result<(), failure::Error>
 where
