@@ -16,6 +16,8 @@
 #[macro_use]
 extern crate failure;
 
+extern crate ipnet;
+
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -26,11 +28,52 @@ extern crate structopt;
 #[macro_use]
 extern crate structopt_derive;
 
+extern crate url;
+
 extern crate zicsv;
 
 mod into_json;
 mod print_err;
+mod search;
 mod select;
+
+#[derive(Debug)]
+pub enum OutputFormat {
+    PrettyJSON,
+    JSON,
+}
+
+impl OutputFormat {
+    fn variants() -> Vec<&'static str> {
+        vec!["pretty-json", "json"]
+    }
+}
+
+impl std::str::FromStr for OutputFormat {
+    type Err = failure::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "pretty-json" => Ok(OutputFormat::PrettyJSON),
+            "json" => Ok(OutputFormat::JSON),
+
+            unknown_format => Err(format_err!("Unknown output format: \"{}\"", unknown_format)),
+        }
+    }
+}
+
+impl std::fmt::Display for OutputFormat {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            formatter,
+            "{}",
+            match *self {
+                OutputFormat::PrettyJSON => "pretty-json",
+                OutputFormat::JSON => "json",
+            }
+        )
+    }
+}
 
 #[derive(StructOpt, Debug)]
 enum Command {
@@ -60,6 +103,21 @@ enum Command {
 
     #[structopt(name = "updated", about = "Print date of last update")]
     Updated,
+
+    #[structopt(name = "search", about = "Search blocked addresses")]
+    Search {
+        #[structopt(
+            name = "OUTPUT FORMAT",
+            short = "O",
+            long = "output-format",
+            default_value = "pretty-json",
+            raw(possible_values = "&OutputFormat::variants()", case_insensitive = "true")
+        )]
+        output_format: OutputFormat,
+
+        #[structopt(name = "ADDRESS")]
+        addresses: Vec<String>,
+    },
 }
 
 #[derive(StructOpt, Debug)]
@@ -108,7 +166,7 @@ fn real_main() -> Result<(), failure::Error> {
     let mut writer = create_writer(&options, &mut stdout)?;
 
     match options.command {
-        Command::IntoJson { disable_pretty, .. } => into_json::into_json(reader, &mut writer, disable_pretty)?,
+        Command::IntoJson { disable_pretty } => into_json::into_json(reader, &mut writer, disable_pretty)?,
 
         Command::Select {
             ipv4,
@@ -133,6 +191,15 @@ fn real_main() -> Result<(), failure::Error> {
         },
 
         Command::Updated => writeln!(writer, "{}", reader.get_timestamp())?,
+
+        Command::Search {
+            addresses,
+            output_format,
+        } => {
+            ensure!(!addresses.is_empty(), "At least one address should be specified");
+
+            search::search(&addresses, reader, &mut writer, &output_format)?
+        },
     }
     writer.flush()?;
 
