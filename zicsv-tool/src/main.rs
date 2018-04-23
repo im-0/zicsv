@@ -28,21 +28,8 @@ extern crate structopt_derive;
 
 extern crate zicsv;
 
-type Records = std::collections::LinkedList<zicsv::Record>;
-
-#[derive(Serialize)]
-struct List {
-    updated: zicsv::DateTime,
-    records: Records,
-}
-
-struct SelectOptions {
-    ipv4: bool,
-    ipv4_network: bool,
-    domain: bool,
-    wildcard_domain: bool,
-    url: bool,
-}
+mod into_json;
+mod select;
 
 #[derive(StructOpt, Debug)]
 enum Command {
@@ -91,55 +78,6 @@ fn create_reader(options: &Options) -> Result<Box<zicsv::GenericReader>, failure
     })
 }
 
-fn load_records(mut reader: Box<zicsv::GenericReader>) -> Result<List, failure::Error> {
-    let records: Result<Records, failure::Error> = reader.records_boxed().collect();
-    Ok(List {
-        updated: *reader.get_timestamp(),
-        records: records?,
-    })
-}
-
-fn conv_into_json(reader: Box<zicsv::GenericReader>, disable_pretty: bool) -> Result<(), failure::Error> {
-    let list = load_records(reader)?;
-
-    let json_str = if disable_pretty {
-        serde_json::to_string(&list)?
-    } else {
-        serde_json::to_string_pretty(&list)?
-    };
-
-    println!("{}", json_str);
-
-    Ok(())
-}
-
-fn select(options: &SelectOptions, mut reader: Box<zicsv::GenericReader>) -> Result<(), failure::Error> {
-    for record in reader.records_boxed() {
-        let record = record?;
-
-        for address in &record.addresses {
-            let selected = match address {
-                &zicsv::Address::IPv4(_) => options.ipv4,
-                &zicsv::Address::IPv4Network(_) => options.ipv4_network,
-                &zicsv::Address::DomainName(_) => options.domain,
-                &zicsv::Address::WildcardDomainName(_) => options.wildcard_domain,
-                &zicsv::Address::URL(_) => options.url,
-
-                unknown => {
-                    eprintln!("Warning! Unknown address type: \"{:?}\"", unknown);
-                    false
-                },
-            };
-
-            if selected {
-                println!("{}", address);
-            }
-        }
-    }
-
-    Ok(())
-}
-
 fn real_main() -> Result<(), failure::Error> {
     use structopt::StructOpt;
 
@@ -148,7 +86,7 @@ fn real_main() -> Result<(), failure::Error> {
     let reader = create_reader(&options)?;
 
     match options.command {
-        Command::IntoJson { disable_pretty, .. } => conv_into_json(reader, disable_pretty),
+        Command::IntoJson { disable_pretty, .. } => into_json::into_json(reader, disable_pretty),
 
         Command::Select {
             ipv4,
@@ -157,7 +95,7 @@ fn real_main() -> Result<(), failure::Error> {
             wildcard_domain,
             url,
         } => {
-            let sopts = SelectOptions {
+            let sopts = select::SelectOptions {
                 ipv4,
                 ipv4_network,
                 domain,
@@ -169,7 +107,7 @@ fn real_main() -> Result<(), failure::Error> {
                 "At least one selection should be specified"
             );
 
-            select(&sopts, reader)
+            select::select(&sopts, reader)
         },
 
         Command::Updated => {
