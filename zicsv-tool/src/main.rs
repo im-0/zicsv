@@ -67,6 +67,9 @@ struct Options {
     #[structopt(short = "i", long = "input", help = "Read from file instead of stdin")]
     input_path: Option<String>,
 
+    #[structopt(short = "o", long = "output", help = "Write into file instead of stdout")]
+    output_path: Option<String>,
+
     #[structopt(subcommand)]
     command: Command,
 }
@@ -79,6 +82,19 @@ fn create_reader(options: &Options) -> Result<Box<zicsv::GenericReader>, failure
     })
 }
 
+fn create_writer<'a>(
+    options: &Options,
+    stdout: &'a mut std::io::Stdout,
+) -> Result<Box<std::io::Write + 'a>, failure::Error> {
+    Ok(if let Some(output_path) = options.output_path.as_ref() {
+        Box::new(std::io::BufWriter::new(std::fs::File::create(output_path)?))
+    } else {
+        // Adding another buffer on top of stdout effectively disables line-buffering of rust's stdout which makes things
+        // a bit faster.
+        Box::new(std::io::BufWriter::new(stdout.lock()))
+    })
+}
+
 fn real_main() -> Result<(), failure::Error> {
     use std::io::Write;
 
@@ -88,10 +104,8 @@ fn real_main() -> Result<(), failure::Error> {
 
     let reader = create_reader(&options)?;
 
-    let stdout = std::io::stdout();
-    // Adding another buffer on top of stdout effectively disables line-buffering of rust's stdout which makes things
-    // a bit faster.
-    let mut writer = std::io::BufWriter::new(stdout.lock());
+    let mut stdout = std::io::stdout();
+    let mut writer = create_writer(&options, &mut stdout)?;
 
     match options.command {
         Command::IntoJson { disable_pretty, .. } => into_json::into_json(reader, &mut writer, disable_pretty)?,
