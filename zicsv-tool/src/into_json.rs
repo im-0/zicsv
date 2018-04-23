@@ -9,7 +9,7 @@ use zicsv;
 use print_err;
 
 pub struct RecordsSerializer<'a> {
-    errors: bool,
+    n_errors: usize,
     records: Box<Iterator<Item = Result<zicsv::Record, failure::Error>> + 'a>,
 }
 
@@ -26,7 +26,7 @@ mod serialize_records {
 
         let mut records_serializer = value.borrow_mut();
         let &mut RecordsSerializer {
-            ref mut errors,
+            ref mut n_errors,
             ref mut records,
         } = records_serializer.deref_mut();
 
@@ -35,7 +35,7 @@ mod serialize_records {
             match record {
                 Ok(record) => seq.serialize_element(&record)?,
                 Err(error) => {
-                    *errors = true;
+                    *n_errors += 1;
                     print_err::print_error(&error);
                 },
             }
@@ -64,7 +64,7 @@ where
 
     let list = List {
         updated,
-        records: std::cell::RefCell::new(RecordsSerializer { errors: false, records }),
+        records: std::cell::RefCell::new(RecordsSerializer { n_errors: 0, records }),
     };
 
     if disable_pretty {
@@ -73,5 +73,7 @@ where
         serde_json::to_writer_pretty(writer, &list)?;
     };
 
+    let n_errors = list.records.borrow().n_errors;
+    ensure!(n_errors == 0, "{} errors occur while reading list", n_errors);
     Ok(())
 }
