@@ -165,7 +165,7 @@ where
     fn parse_domain_name(addr_str: &str, addresses: &mut types::Addresses) -> Result<(), failure::Error> {
         Self::parse_for_each(addr_str, "|", |part| {
             {
-                if part.starts_with('*') {
+                if part.starts_with("*.") || part == "*" {
                     addresses.push(types::Address::WildcardDomainName(part.into()));
                 } else {
                     addresses.push(types::Address::DomainName(part.into()));
@@ -417,6 +417,45 @@ mod tests {
             types::Address::URL("http://example.com?test=x".parse().unwrap()),
             types::Address::URL("http://example.com?test=y".parse().unwrap()),
         ];
+        assert_eq!(record.addresses, addresses);
+        assert!(record.organization.is_empty());
+        assert!(record.document_id.is_empty());
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
+
+        let mut reader = from_str(
+            "\
+             Updated: 2017-11-29 12:34:56 -0100\n\
+             ;*;;;;2017-01-02\n\
+             ",
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
+        let addresses = vec![types::Address::WildcardDomainName("*".into())];
+        assert_eq!(record.addresses, addresses);
+        assert!(record.organization.is_empty());
+        assert!(record.document_id.is_empty());
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
+
+        let mut reader = from_str(
+            "\
+             Updated: 2017-11-29 12:34:56 -0100\n\
+             ;*example.com;;;;2017-01-02\n\
+             ",
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
+        let addresses = vec![types::Address::DomainName("*example.com".into())];
+        assert_eq!(record.addresses, addresses);
+        assert!(record.organization.is_empty());
+        assert!(record.document_id.is_empty());
+        assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
+
+        let mut reader = from_str(
+            "\
+             Updated: 2017-11-29 12:34:56 -0100\n\
+             ;test.*.example.com;;;;2017-01-02\n\
+             ",
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
+        let addresses = vec![types::Address::DomainName("test.*.example.com".into())];
         assert_eq!(record.addresses, addresses);
         assert!(record.organization.is_empty());
         assert!(record.document_id.is_empty());
