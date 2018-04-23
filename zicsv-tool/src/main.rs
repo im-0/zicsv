@@ -126,7 +126,7 @@ fn select(options: &SelectOptions, mut reader: Box<zicsv::GenericReader>) -> Res
                 &zicsv::Address::URL(_) => options.url,
 
                 unknown => {
-                    eprintln!("Warning! Unknwon address type: \"{:?}\"", unknown);
+                    eprintln!("Warning! Unknown address type: \"{:?}\"", unknown);
                     false
                 },
             };
