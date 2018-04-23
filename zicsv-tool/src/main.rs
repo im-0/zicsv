@@ -29,6 +29,7 @@ extern crate structopt_derive;
 extern crate zicsv;
 
 mod into_json;
+mod print_err;
 mod select;
 
 #[derive(StructOpt, Debug)]
@@ -119,28 +120,7 @@ fn real_main() -> Result<(), failure::Error> {
 
 fn main() {
     let rc = real_main().map(|_| 0).unwrap_or_else(|error| {
-        eprintln!("Error:");
-
-        let error_backtrace = format!("{}", error.backtrace());
-        let mut duplicate_error_backtrace = false;
-        for cause in error.causes() {
-            eprintln!("    {}", cause);
-            let _ = cause.backtrace().map(|backtrace| {
-                let backtrace = format!("{}", backtrace);
-                if !backtrace.is_empty() {
-                    if backtrace == error_backtrace {
-                        duplicate_error_backtrace = true;
-                    };
-
-                    eprintln!("        Cause {}\n", backtrace);
-                };
-            });
-        }
-
-        if !duplicate_error_backtrace && !error_backtrace.is_empty() {
-            eprintln!("        Error {}\n", error_backtrace);
-        };
-
+        print_err::print_error(&error);
         1
     });
     std::process::exit(rc)
