@@ -1,3 +1,5 @@
+use std;
+
 use failure;
 
 use zicsv;
@@ -10,7 +12,14 @@ pub struct SelectOptions {
     pub url: bool,
 }
 
-pub fn select(options: &SelectOptions, mut reader: Box<zicsv::GenericReader>) -> Result<(), failure::Error> {
+pub fn select<StreamWriter>(
+    options: &SelectOptions,
+    mut reader: Box<zicsv::GenericReader>,
+    mut writer: StreamWriter,
+) -> Result<(), failure::Error>
+where
+    StreamWriter: std::io::Write,
+{
     for record in reader.iter() {
         let record = record?;
 
@@ -29,7 +38,7 @@ pub fn select(options: &SelectOptions, mut reader: Box<zicsv::GenericReader>) ->
             };
 
             if selected {
-                println!("{}", address);
+                writeln!(writer, "{}", address)?;
             }
         }
     }

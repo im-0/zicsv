@@ -51,7 +51,14 @@ struct List<'a> {
     records: std::cell::RefCell<RecordsSerializer<'a>>,
 }
 
-pub fn into_json(mut reader: Box<zicsv::GenericReader>, disable_pretty: bool) -> Result<(), failure::Error> {
+pub fn into_json<StreamWriter>(
+    mut reader: Box<zicsv::GenericReader>,
+    writer: StreamWriter,
+    disable_pretty: bool,
+) -> Result<(), failure::Error>
+where
+    StreamWriter: std::io::Write,
+{
     let updated = *reader.get_timestamp();
     let records = reader.iter();
 
@@ -61,9 +68,9 @@ pub fn into_json(mut reader: Box<zicsv::GenericReader>, disable_pretty: bool) ->
     };
 
     if disable_pretty {
-        serde_json::to_writer(std::io::stdout(), &list)?;
+        serde_json::to_writer(writer, &list)?;
     } else {
-        serde_json::to_writer_pretty(std::io::stdout(), &list)?;
+        serde_json::to_writer_pretty(writer, &list)?;
     };
 
     Ok(())

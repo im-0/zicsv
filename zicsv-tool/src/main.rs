@@ -80,14 +80,21 @@ fn create_reader(options: &Options) -> Result<Box<zicsv::GenericReader>, failure
 }
 
 fn real_main() -> Result<(), failure::Error> {
+    use std::io::Write;
+
     use structopt::StructOpt;
 
     let options = Options::from_args();
 
     let reader = create_reader(&options)?;
 
+    let stdout = std::io::stdout();
+    // Adding another buffer on top of stdout effectively disables line-buffering of rust's stdout which makes things
+    // a bit faster.
+    let mut writer = std::io::BufWriter::new(stdout.lock());
+
     match options.command {
-        Command::IntoJson { disable_pretty, .. } => into_json::into_json(reader, disable_pretty),
+        Command::IntoJson { disable_pretty, .. } => into_json::into_json(reader, writer, disable_pretty),
 
         Command::Select {
             ipv4,
@@ -108,11 +115,11 @@ fn real_main() -> Result<(), failure::Error> {
                 "At least one selection should be specified"
             );
 
-            select::select(&sopts, reader)
+            select::select(&sopts, reader, writer)
         },
 
         Command::Updated => {
-            println!("{}", reader.get_timestamp());
+            writeln!(writer, "{}", reader.get_timestamp())?;
             Ok(())
         },
     }
