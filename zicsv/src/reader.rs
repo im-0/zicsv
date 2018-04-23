@@ -16,7 +16,8 @@ pub trait GenericReader {
     fn get_timestamp(&self) -> &types::DateTime;
 
     /// Iterate over records using generic iterator.
-    fn records_boxed<'a>(&'a mut self) -> Box<Iterator<Item = Result<types::Record, failure::Error>> + 'a>;
+    // TODO: Change to into_iter() which will consume self?
+    fn iter<'a>(&'a mut self) -> Box<Iterator<Item = Result<types::Record, failure::Error>> + 'a>;
 }
 
 pub struct Reader<StreamReader>
@@ -59,14 +60,6 @@ where
                 .flexible(true),
         })
     }
-
-    /// Iterate over records.
-    pub fn records(&mut self) -> Records<StreamReader> {
-        Records {
-            csv_records: self.csv_reader.byte_records(),
-            line_n: 1,
-        }
-    }
 }
 
 impl<UnbufferedReader> Reader<std::io::BufReader<UnbufferedReader>>
@@ -100,8 +93,11 @@ where
         &self.updated
     }
 
-    fn records_boxed<'a>(&'a mut self) -> Box<Iterator<Item = Result<types::Record, failure::Error>> + 'a> {
-        Box::new(self.records())
+    fn iter<'a>(&'a mut self) -> Box<Iterator<Item = Result<types::Record, failure::Error>> + 'a> {
+        Box::new(Records {
+            csv_records: self.csv_reader.byte_records(),
+            line_n: 1,
+        })
     }
 }
 
@@ -306,88 +302,76 @@ mod tests {
 
     #[test]
     fn parse_no_records() {
-        let record = from_str(
+        use reader::GenericReader;
+
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ",
-        ).unwrap()
-            .records()
-            .next();
+        ).unwrap();
+        let record = reader.iter().next();
         assert!(record.is_none());
     }
 
     #[test]
     fn parse_valid_record() {
-        let record = from_str(
+        use reader::GenericReader;
+
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;;;;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
         assert!(record.addresses.is_empty());
         assert!(record.organization.is_empty());
         assert!(record.document_id.is_empty());
         assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;;org string;id string;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
         assert!(record.addresses.is_empty());
         assert_eq!(record.organization, "org string");
         assert_eq!(record.document_id, "id string");
         assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;;\"org string\";id string;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
         assert!(record.addresses.is_empty());
         assert_eq!(record.organization, "org string");
         assert_eq!(record.document_id, "id string");
         assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;;\"org;string\";id string;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
         assert!(record.addresses.is_empty());
         assert_eq!(record.organization, "org;string");
         assert_eq!(record.document_id, "id string");
         assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              1.2.3.4;example.com;http://example.com;;;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
         let addresses = vec![
             types::Address::IPv4("1.2.3.4".parse().unwrap()),
             types::Address::DomainName("example.com".into()),
@@ -398,16 +382,13 @@ mod tests {
         assert!(record.document_id.is_empty());
         assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              1.2.3.4|1.2.3.0/24;example.com|*.example.com;http://example.com?test=x|y;;;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
         let addresses = vec![
             types::Address::IPv4("1.2.3.4".parse().unwrap()),
             types::Address::IPv4Network("1.2.3.0/24".parse().unwrap()),
@@ -420,17 +401,14 @@ mod tests {
         assert!(record.document_id.is_empty());
         assert_eq!(record.document_date, chrono::NaiveDate::from_ymd(2017, 1, 2));
 
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              1.2.3.4 | 1.2.3.0/24;example.com | \
              *.example.com;http://example.com?test=x | http://example.com?test=y;;;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap().unwrap();
         let addresses = vec![
             types::Address::IPv4("1.2.3.4".parse().unwrap()),
             types::Address::IPv4Network("1.2.3.0/24".parse().unwrap()),
@@ -447,76 +425,66 @@ mod tests {
 
     #[test]
     fn parse_invalid_record() {
+        use reader::GenericReader;
+
         // Too many columns.
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;;;;;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap();
         assert!(record.is_err());
 
         // Not enough columns.
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;;;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap();
         assert!(record.is_err());
 
         // No date.
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;;;;\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap();
         assert!(record.is_err());
 
         // Invalid date format.
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;;;;test\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap();
         assert!(record.is_err());
 
         // Invalid IPv4 address.
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              invalid;;;;;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap();
         assert!(record.is_err());
 
         // Invalid URL.
-        let record = from_str(
+        let mut reader = from_str(
             "\
              Updated: 2017-11-29 12:34:56 -0100\n\
              ;;invalid;;;2017-01-02\n\
              ",
-        ).unwrap()
-            .records()
-            .next()
-            .unwrap();
+        ).unwrap();
+        let record = reader.iter().next().unwrap();
         assert!(record.is_err());
     }
 }

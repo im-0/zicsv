@@ -14,7 +14,7 @@ struct List {
 }
 
 fn load_records(mut reader: Box<zicsv::GenericReader>) -> Result<List, failure::Error> {
-    let records: Result<Records, failure::Error> = reader.records_boxed().collect();
+    let records: Result<Records, failure::Error> = reader.iter().collect();
     Ok(List {
         updated: *reader.get_timestamp(),
         records: records?,

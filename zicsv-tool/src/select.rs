@@ -11,7 +11,7 @@ pub struct SelectOptions {
 }
 
 pub fn select(options: &SelectOptions, mut reader: Box<zicsv::GenericReader>) -> Result<(), failure::Error> {
-    for record in reader.records_boxed() {
+    for record in reader.iter() {
         let record = record?;
 
         for address in &record.addresses {
