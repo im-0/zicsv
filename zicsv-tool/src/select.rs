@@ -24,17 +24,15 @@ where
         let record = record?;
 
         for address in &record.addresses {
-            let selected = match address {
-                &zicsv::Address::IPv4(_) => options.ipv4,
-                &zicsv::Address::IPv4Network(_) => options.ipv4_network,
-                &zicsv::Address::DomainName(_) => options.domain,
-                &zicsv::Address::WildcardDomainName(_) => options.wildcard_domain,
-                &zicsv::Address::URL(_) => options.url,
+            let selected = match *address {
+                zicsv::Address::IPv4(_) => options.ipv4,
+                zicsv::Address::IPv4Network(_) => options.ipv4_network,
+                zicsv::Address::DomainName(_) => options.domain,
+                zicsv::Address::WildcardDomainName(_) => options.wildcard_domain,
+                zicsv::Address::URL(_) => options.url,
 
-                unknown => {
-                    eprintln!("Warning! Unknown address type: \"{:?}\"", unknown);
-                    false
-                },
+                // Do nothing on unknown type of address.
+                _ => false,
             };
 
             if selected {
