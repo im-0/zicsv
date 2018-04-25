@@ -160,8 +160,6 @@ enum MatchReason {
     WildcardInBlockedWildcard,
     /// Wildcard domain name is a superset of blocked wildcard domain name.
     WildcardContainsBlockedWildcard,
-    /// Wildcard domain name is matched by host name of blocked URL.
-    WildcardContainsBlockedURL,
 
     /// URL is equal to blocked URL.
     URLEquals,
@@ -278,14 +276,6 @@ fn addr_match(blocked_address: &zicsv::Address, address: &zicsv::Address) -> Opt
             } else {
                 None
             },
-
-            zicsv::Address::URL(ref blocked_url) => blocked_url.host_str().and_then(|blocked_domain| {
-                if match_wildcard_domain(wildcard, blocked_domain) {
-                    Some(MatchReason::WildcardContainsBlockedURL)
-                } else {
-                    None
-                }
-            }),
 
             _ => None,
         },
