@@ -69,10 +69,12 @@ impl Address {
         address.map_err(|error| error.context(format!("Address: \"{}\"", orig_address)).into())
     }
 
+    /// Parse IPv4 address from string.
     pub fn ipv4_from_str(address: &str) -> Result<Self, failure::Error> {
         Ok(Address::IPv4(Self::add_context(address, address.parse())?))
     }
 
+    /// Parse IPv4 network from string.
     pub fn ipv4_network_from_str(address: &str) -> Result<Self, failure::Error> {
         Ok(Address::IPv4Network(Self::add_context(address, address.parse())?))
     }
@@ -86,6 +88,7 @@ impl Address {
         Ok(Address::DomainName(Self::str_to_idn_punycode(address)?))
     }
 
+    /// Parse domain name from string.
     pub fn domain_name_from_str(address: &str) -> Result<Self, failure::Error> {
         Self::add_context_failure(address, Self::domain_name_from_str_no_ctx(address))
     }
@@ -98,10 +101,12 @@ impl Address {
         Ok(Address::WildcardDomainName(Self::str_to_idn_punycode(address)?))
     }
 
+    /// Parse wildcard domain name from string.
     pub fn wildcard_domain_name_from_str(address: &str) -> Result<Self, failure::Error> {
         Self::add_context_failure(address, Self::wildcard_domain_name_from_str_no_ctx(address))
     }
 
+    /// Parse URL from string.
     pub fn url_from_str(address: &str) -> Result<Self, failure::Error> {
         Ok(Address::URL(Self::add_context(address, address.parse())?))
     }
@@ -132,6 +137,7 @@ impl std::fmt::Display for Address {
 impl std::str::FromStr for Address {
     type Err = failure::Error;
 
+    /// Automatically detect type of address and parse it from string.
     fn from_str(address: &str) -> Result<Self, Self::Err> {
         Self::ipv4_from_str(address)
             .or_else(|_| Self::ipv4_network_from_str(address))

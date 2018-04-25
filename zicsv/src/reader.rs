@@ -9,6 +9,7 @@ use types;
 
 type StringRecord = (String, String, String, String, String, String);
 
+/// Generic interface independent of underlying IO stream.
 pub trait GenericReader {
     /// Date of last update of this list.
     fn get_timestamp(&self) -> &types::DateTime;
@@ -18,6 +19,7 @@ pub trait GenericReader {
     fn iter<'a>(&'a mut self) -> Box<Iterator<Item = Result<types::Record, failure::Error>> + 'a>;
 }
 
+/// Reader bound to specific type of IO stream.
 pub struct Reader<StreamReader>
 where
     StreamReader: std::io::BufRead,
@@ -99,6 +101,7 @@ where
     }
 }
 
+/// Iterator over the list records containing information abould blocked addresses.
 pub struct Records<'a, StreamReader: 'a>
 where
     StreamReader: std::io::BufRead,
