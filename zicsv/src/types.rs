@@ -1,6 +1,7 @@
 use std;
 
 use chrono;
+use failure;
 use ipnet;
 
 use url;
@@ -19,9 +20,9 @@ pub enum Address {
     /// Blocked by IPv4 subnet.
     #[cfg_attr(feature = "serialization", serde(with = "ipnet_serde"))]
     IPv4Network(ipnet::Ipv4Net),
-    /// Blocked by domain name.
+    /// Blocked by domain name. Lowercase, in IDN format (punicode encoded if necessary).
     DomainName(String),
-    /// Blocked by wildcard domain name.
+    /// Blocked by wildcard domain name. Lowercase, in IDN format (punicode encoded if necessary).
     WildcardDomainName(String),
     /// Blocked by URL.
     #[cfg_attr(feature = "serialization", serde(with = "url_serde"))]
@@ -56,6 +57,56 @@ pub struct Record {
 
 pub type DateTime = chrono::NaiveDateTime;
 
+impl Address {
+    fn add_context<T, E>(orig_address: &str, address: Result<T, E>) -> Result<T, failure::Error>
+    where
+        E: failure::Fail,
+    {
+        address.map_err(|error| error.context(format!("Address: \"{}\"", orig_address)).into())
+    }
+
+    fn add_context_failure<T>(orig_address: &str, address: Result<T, failure::Error>) -> Result<T, failure::Error> {
+        address.map_err(|error| error.context(format!("Address: \"{}\"", orig_address)).into())
+    }
+
+    pub fn ipv4_from_str(address: &str) -> Result<Self, failure::Error> {
+        Ok(Address::IPv4(Self::add_context(address, address.parse())?))
+    }
+
+    pub fn ipv4_network_from_str(address: &str) -> Result<Self, failure::Error> {
+        Ok(Address::IPv4Network(Self::add_context(address, address.parse())?))
+    }
+
+    fn str_to_idn_punycode(address: &str) -> Result<String, failure::Error> {
+        url::idna::domain_to_ascii(address).map_err(|_| format_err!("Unable to convert domain name to publycode"))
+    }
+
+    fn domain_name_from_str_no_ctx(address: &str) -> Result<Self, failure::Error> {
+        ensure!(!address.is_empty(), "Empty domain name");
+        Ok(Address::DomainName(Self::str_to_idn_punycode(address)?))
+    }
+
+    pub fn domain_name_from_str(address: &str) -> Result<Self, failure::Error> {
+        Self::add_context_failure(address, Self::domain_name_from_str_no_ctx(address))
+    }
+
+    fn wildcard_domain_name_from_str_no_ctx(address: &str) -> Result<Self, failure::Error> {
+        ensure!(
+            address.starts_with("*.") || address == "*",
+            "Invalid wildcard domain name"
+        );
+        Ok(Address::WildcardDomainName(Self::str_to_idn_punycode(address)?))
+    }
+
+    pub fn wildcard_domain_name_from_str(address: &str) -> Result<Self, failure::Error> {
+        Self::add_context_failure(address, Self::wildcard_domain_name_from_str_no_ctx(address))
+    }
+
+    pub fn url_from_str(address: &str) -> Result<Self, failure::Error> {
+        Ok(Address::URL(Self::add_context(address, address.parse())?))
+    }
+}
+
 impl<'a> From<&'a Address> for String {
     fn from(address: &Address) -> Self {
         #[allow(non_snake_case)]
@@ -78,7 +129,18 @@ impl std::fmt::Display for Address {
     }
 }
 
-// TODO: Implement TryFrom<String> for Address
+impl std::str::FromStr for Address {
+    type Err = failure::Error;
+
+    fn from_str(address: &str) -> Result<Self, Self::Err> {
+        Self::ipv4_from_str(address)
+            .or_else(|_| Self::ipv4_network_from_str(address))
+            .or_else(|_| Self::url_from_str(address))
+            .or_else(|_| Self::wildcard_domain_name_from_str(address))
+            .or_else(|_| Self::domain_name_from_str(address))
+            .map_err(|_| format_err!("Unknown type of address: \"{}\"", address))
+    }
+}
 
 impl std::fmt::Display for Record {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -184,6 +246,100 @@ mod tests {
         assert_eq!(
             format!("{}", record),
             "example.com, 1.2.3.4 (\"Test org\", \"Test document ID\"/2017-01-02)"
+        );
+    }
+
+    #[test]
+    fn address_from_str() {
+        assert!("".parse::<super::Address>().is_err());
+
+        assert_eq!(
+            "127.0.0.1".parse::<super::Address>().unwrap(),
+            super::Address::IPv4("127.0.0.1".parse().unwrap())
+        );
+
+        assert_eq!(
+            "127.0.0.0/8".parse::<super::Address>().unwrap(),
+            super::Address::IPv4Network("127.0.0.0/8".parse().unwrap())
+        );
+
+        assert_eq!(
+            "http://example.com".parse::<super::Address>().unwrap(),
+            super::Address::URL("http://example.com".parse().unwrap())
+        );
+        assert_eq!(
+            "http://EXAMPLE.com".parse::<super::Address>().unwrap(),
+            super::Address::URL("http://example.com".parse().unwrap())
+        );
+        assert_eq!(
+            "http://\u{442}\u{435}\u{441}\u{442}.org/test"
+                .parse::<super::Address>()
+                .unwrap(),
+            super::Address::URL("http://xn--e1aybc.org/test".parse().unwrap())
+        );
+        // Uppercase.
+        assert_eq!(
+            "http://\u{422}\u{415}\u{421}\u{422}.org/test"
+                .parse::<super::Address>()
+                .unwrap(),
+            super::Address::URL("http://xn--e1aybc.org/test".parse().unwrap())
+        );
+
+        assert_eq!(
+            "*".parse::<super::Address>().unwrap(),
+            super::Address::WildcardDomainName("*".into())
+        );
+
+        assert_eq!(
+            "*.example.org".parse::<super::Address>().unwrap(),
+            super::Address::WildcardDomainName("*.example.org".into())
+        );
+        assert_eq!(
+            "*.EXAMPLE.org".parse::<super::Address>().unwrap(),
+            super::Address::WildcardDomainName("*.example.org".into())
+        );
+        assert_eq!(
+            "*.\u{442}\u{435}\u{441}\u{442}.org".parse::<super::Address>().unwrap(),
+            super::Address::WildcardDomainName("*.xn--e1aybc.org".into())
+        );
+        // Uppercase.
+        assert_eq!(
+            "*.\u{422}\u{415}\u{421}\u{422}.org".parse::<super::Address>().unwrap(),
+            super::Address::WildcardDomainName("*.xn--e1aybc.org".into())
+        );
+        assert_eq!(
+            "*.xn--e1aybc.org".parse::<super::Address>().unwrap(),
+            super::Address::WildcardDomainName("*.xn--e1aybc.org".into())
+        );
+        assert_eq!(
+            "*.XN--E1AYBC.org".parse::<super::Address>().unwrap(),
+            super::Address::WildcardDomainName("*.xn--e1aybc.org".into())
+        );
+
+        assert_eq!(
+            "example.org".parse::<super::Address>().unwrap(),
+            super::Address::DomainName("example.org".into())
+        );
+        assert_eq!(
+            "EXAMPLE.org".parse::<super::Address>().unwrap(),
+            super::Address::DomainName("example.org".into())
+        );
+        assert_eq!(
+            "\u{442}\u{435}\u{441}\u{442}.org".parse::<super::Address>().unwrap(),
+            super::Address::DomainName("xn--e1aybc.org".into())
+        );
+        // Uppercase.
+        assert_eq!(
+            "\u{422}\u{415}\u{421}\u{422}.org".parse::<super::Address>().unwrap(),
+            super::Address::DomainName("xn--e1aybc.org".into())
+        );
+        assert_eq!(
+            "xn--e1aybc.org".parse::<super::Address>().unwrap(),
+            super::Address::DomainName("xn--e1aybc.org".into())
+        );
+        assert_eq!(
+            "XN--E1AYBC.ORG".parse::<super::Address>().unwrap(),
+            super::Address::DomainName("xn--e1aybc.org".into())
         );
     }
 }

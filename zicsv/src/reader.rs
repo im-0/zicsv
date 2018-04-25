@@ -4,8 +4,6 @@ use chrono;
 use csv;
 use encoding;
 use failure;
-use ipnet;
-use url;
 
 use types;
 
@@ -149,42 +147,25 @@ where
     }
 
     fn parse_ipv4_addresses(addr_str: &str, addresses: &mut types::Addresses) -> Result<(), failure::Error> {
-        use std::str::FromStr;
-
         Self::parse_for_each(addr_str, "|", |part| {
-            if part.contains('/') {
-                addresses.push(types::Address::IPv4Network(ipnet::Ipv4Net::from_str(part)?));
-            } else {
-                addresses.push(types::Address::IPv4(std::net::Ipv4Addr::from_str(part)?));
-            }
-
+            addresses
+                .push(types::Address::ipv4_network_from_str(part).or_else(|_| types::Address::ipv4_from_str(part))?);
             Ok(())
         })
     }
 
     fn parse_domain_name(addr_str: &str, addresses: &mut types::Addresses) -> Result<(), failure::Error> {
         Self::parse_for_each(addr_str, "|", |part| {
-            {
-                if part.starts_with("*.") || part == "*" {
-                    addresses.push(types::Address::WildcardDomainName(part.into()));
-                } else {
-                    addresses.push(types::Address::DomainName(part.into()));
-                }
-            }
-
+            addresses.push(types::Address::wildcard_domain_name_from_str(part)
+                .or_else(|_| types::Address::domain_name_from_str(part))?);
             Ok(())
         })
     }
 
     fn parse_url(addr_str: &str, addresses: &mut types::Addresses) -> Result<(), failure::Error> {
-        use std::str::FromStr;
-
         // We are using " | " as a delimiter because URL itself may contain '|'.
         Self::parse_for_each(addr_str, " | ", |part| {
-            {
-                addresses.push(types::Address::URL(url::Url::from_str(part)?));
-            }
-
+            addresses.push(types::Address::url_from_str(part)?);
             Ok(())
         })
     }
