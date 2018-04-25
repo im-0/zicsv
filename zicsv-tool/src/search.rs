@@ -22,7 +22,7 @@ where
     match resolve_result {
         Ok(response) => f(response),
 
-        Err(error) => match error.kind() {
+        Err(error) => match *error.kind() {
             trust_dns_resolver::error::ResolveErrorKind::NoRecordsFound(_) => vec![],
             _ => vec![Err(format_err!("{} resolution: {}", record_type, error))],
         },
@@ -67,10 +67,11 @@ fn extract_more_info(
                 |response| {
                     response
                         .iter()
-                        .filter_map(|resolved_cname| match resolved_cname {
-                            trust_dns_proto::rr::record_data::RData::CNAME(cname) => {
+                        .filter_map(|resolved_cname| match *resolved_cname {
+                            trust_dns_proto::rr::record_data::RData::CNAME(ref cname) => {
                                 Some(zicsv::Address::domain_name_from_str(&cname.to_utf8()))
                             },
+
                             // Ignore other types.
                             _ => None,
                         })
