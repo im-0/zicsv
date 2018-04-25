@@ -47,6 +47,7 @@ fn extract_more_info(
         },
 
         zicsv::Address::DomainName(ref domain) => {
+            // TODO: Resolve other types of records containing IP addresses and host aliases.
             // TODO: Try to resolve multiple times.
             // For some hosts (example: google.com) DNS server may return different addresses every time.
             let mut all_resolved = resolve_helper("IP", resolver.lookup_ip(domain), |response| {
