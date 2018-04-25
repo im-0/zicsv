@@ -41,13 +41,14 @@ mod select;
 
 #[derive(Debug)]
 pub enum OutputFormat {
+    HumanReadable,
     PrettyJSON,
     JSON,
 }
 
 impl OutputFormat {
     fn variants() -> Vec<&'static str> {
-        vec!["pretty-json", "json"]
+        vec!["human-readable", "pretty-json", "json"]
     }
 }
 
@@ -56,6 +57,7 @@ impl std::str::FromStr for OutputFormat {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "human-readable" => Ok(OutputFormat::HumanReadable),
             "pretty-json" => Ok(OutputFormat::PrettyJSON),
             "json" => Ok(OutputFormat::JSON),
 
@@ -70,6 +72,7 @@ impl std::fmt::Display for OutputFormat {
             formatter,
             "{}",
             match *self {
+                OutputFormat::HumanReadable => "human-readable",
                 OutputFormat::PrettyJSON => "pretty-json",
                 OutputFormat::JSON => "json",
             }
@@ -112,7 +115,7 @@ enum Command {
             name = "OUTPUT FORMAT",
             short = "O",
             long = "output-format",
-            default_value = "pretty-json",
+            default_value = "human-readable",
             raw(possible_values = "&OutputFormat::variants()", case_insensitive = "true")
         )]
         output_format: OutputFormat,

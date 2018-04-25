@@ -170,6 +170,43 @@ enum MatchReason {
     URLInBlockedURL,
 }
 
+impl std::fmt::Display for MatchReason {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(
+            formatter,
+            "{}",
+            match *self {
+                MatchReason::IPv4Equals => "IPv4 address is equal to blocked IPv4 address",
+                MatchReason::IPv4InBlockedIPv4Network => "IPv4 address is contained in blocked IPv4 network",
+
+                MatchReason::IPv4NetworkContainsBlockedIPv4 => "IPv4 network contains blocked IPv4 address",
+                MatchReason::IPv4NetworkEquals => "IPv4 network is equal to blocked IPv4 network",
+                MatchReason::IPv4NetworkInBlockedIPv4Network => "IPv4 network is a subset of blocked IPv4 network",
+                MatchReason::IPv4NetworkContainsBlockedIPv4Network => {
+                    "IPV4 network is a superset of blocked IPv4 network"
+                },
+
+                MatchReason::DomainNameEquals => "Domain name is equal to blocked domain name",
+                MatchReason::DomainNameInBlockedWildcard => "Domain name matches blocked wildcard domain name",
+                MatchReason::DomainNameInBlockedURL => "Domain name is used in blocked URL",
+
+                MatchReason::WildcardContainsBlockedDomain => "Wildcard domain name is matched by blocked domain name",
+                MatchReason::WildcardEquals => "Wildcard domain name is equal to blocked wildcard domain name",
+                MatchReason::WildcardInBlockedWildcard => {
+                    "Wildcard domain name is a subset of blocked wildcard domain name"
+                },
+                MatchReason::WildcardContainsBlockedWildcard => {
+                    "Wildcard domain name is a superset of blocked wildcard domain name"
+                },
+
+                MatchReason::URLEquals => "URL is equal to blocked URL",
+                MatchReason::URLContainsBlockedURL => "URL is a base of blocked URL",
+                MatchReason::URLInBlockedURL => "URL is starting from blocked URL",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Serialize)]
 struct Match {
     #[serde(with = "serialize_rc_record")]
@@ -324,6 +361,59 @@ fn create_resolver() -> Result<trust_dns_resolver::Resolver, failure::Error> {
     Ok(trust_dns_resolver::Resolver::new(conf, opts)?)
 }
 
+fn print_human_readable<StreamWriter>(writer: &mut StreamWriter, addresses: &[Address]) -> Result<(), failure::Error>
+where
+    StreamWriter: std::io::Write,
+{
+    let mut not_first = false;
+    for address in addresses.iter() {
+        if not_first {
+            writeln!(writer)?;
+        } else {
+            not_first = true;
+        }
+
+        writeln!(writer, "{}:", address.original_address)?;
+
+        let mut not_first_sub_addr = false;
+        for sub_address in &address.addresses {
+            if not_first_sub_addr {
+                writeln!(writer)?;
+            } else {
+                not_first_sub_addr = true;
+            }
+
+            if sub_address.matches.is_empty() {
+                writeln!(writer, "    {}: not found", sub_address.address)?;
+            } else {
+                writeln!(writer, "    {}: blocked", sub_address.address)?;
+
+                for addr_match in &sub_address.matches {
+                    writeln!(writer, "        {}:", addr_match.match_reason)?;
+                    writeln!(writer, "            Blocked: {}", addr_match.blocked_address)?;
+                    writeln!(
+                        writer,
+                        "            Organization: {}",
+                        addr_match.block_record.organization
+                    )?;
+                    writeln!(
+                        writer,
+                        "            Document ID: {}",
+                        addr_match.block_record.document_id
+                    )?;
+                    writeln!(
+                        writer,
+                        "            Document date: {}",
+                        addr_match.block_record.document_date
+                    )?;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub fn search<StreamWriter>(
     orig_addresses: &[String],
     mut reader: Box<zicsv::GenericReader>,
@@ -372,9 +462,9 @@ where
     }
 
     match *output_format {
+        super::OutputFormat::HumanReadable => print_human_readable(writer, &addresses)?,
         super::OutputFormat::PrettyJSON => serde_json::to_writer_pretty(writer, &addresses)?,
         super::OutputFormat::JSON => serde_json::to_writer(writer, &addresses)?,
-        // TODO: Human-readable output.
     }
 
     ensure!(
