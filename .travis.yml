@@ -20,4 +20,7 @@ script:
 
 os:
   - linux
-  - osx
+
+# Name resolution for "localhost" (using "/etc/hosts") fails on regular docker
+# images with "sudo: false".
+sudo: required
