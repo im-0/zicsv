@@ -20,14 +20,14 @@
 #![cfg_attr(feature = "cargo-clippy", warn(print_stdout))]
 #![cfg_attr(feature = "cargo-clippy", warn(else_if_without_else))]
 
-extern crate chrono;
+pub extern crate chrono;
 extern crate csv;
 extern crate encoding;
 
 #[macro_use]
-extern crate failure;
+pub extern crate failure;
 
-extern crate ipnet;
+pub extern crate ipnet;
 
 #[cfg(test)]
 #[macro_use]
@@ -41,7 +41,7 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate serde_json;
 
-extern crate url;
+pub extern crate url;
 #[cfg(feature = "serialization")]
 extern crate url_serde;
 
