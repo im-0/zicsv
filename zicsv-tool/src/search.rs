@@ -129,7 +129,7 @@ mod serialize_rc_record {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 enum MatchReason {
     /// IPv4 address is equal to blocked IPv4 address.
     IPv4Equals,
@@ -532,5 +532,167 @@ mod tests {
         assert_eq!(n_errors, 1);
     }
 
-    // TODO: Test addr_match().
+    #[test]
+    fn addr_match() {
+        assert_eq!(
+            super::addr_match(&"4.3.2.1".parse().unwrap(), &"1.2.3.4".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"1.2.3.4".parse().unwrap(), &"1.2.3.4".parse().unwrap()),
+            Some(super::MatchReason::IPv4Equals),
+        );
+        assert_eq!(
+            super::addr_match(&"4.3.0.0/16".parse().unwrap(), &"1.2.3.4".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"1.2.0.0/16".parse().unwrap(), &"1.2.3.4".parse().unwrap()),
+            Some(super::MatchReason::IPv4InBlockedIPv4Network),
+        );
+
+        assert_eq!(
+            super::addr_match(&"4.3.2.1".parse().unwrap(), &"1.2.0.0/16".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"1.2.3.4".parse().unwrap(), &"1.2.0.0/16".parse().unwrap()),
+            Some(super::MatchReason::IPv4NetworkContainsBlockedIPv4),
+        );
+        assert_eq!(
+            super::addr_match(&"4.3.0.0/16".parse().unwrap(), &"1.2.0.0/16".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"1.2.0.0/16".parse().unwrap(), &"1.2.0.0/16".parse().unwrap()),
+            Some(super::MatchReason::IPv4NetworkEquals),
+        );
+        assert_eq!(
+            super::addr_match(&"4.3.0.0/8".parse().unwrap(), &"1.2.0.0/16".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"1.0.0.0/8".parse().unwrap(), &"1.2.0.0/16".parse().unwrap()),
+            Some(super::MatchReason::IPv4NetworkInBlockedIPv4Network),
+        );
+        assert_eq!(
+            super::addr_match(&"4.3.2.0/24".parse().unwrap(), &"1.2.0.0/16".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"1.2.3.0/24".parse().unwrap(), &"1.2.0.0/16".parse().unwrap()),
+            Some(super::MatchReason::IPv4NetworkContainsBlockedIPv4Network),
+        );
+
+        assert_eq!(
+            super::addr_match(&"example.com".parse().unwrap(), &"example.org".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"example.org".parse().unwrap(), &"example.org".parse().unwrap()),
+            Some(super::MatchReason::DomainNameEquals),
+        );
+        assert_eq!(
+            super::addr_match(&"*.com".parse().unwrap(), &"example.org".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"*.org".parse().unwrap(), &"example.org".parse().unwrap()),
+            Some(super::MatchReason::DomainNameInBlockedWildcard),
+        );
+        assert_eq!(
+            super::addr_match(&"*".parse().unwrap(), &"example.org".parse().unwrap()),
+            Some(super::MatchReason::DomainNameInBlockedWildcard),
+        );
+        assert_eq!(
+            super::addr_match(&"http://example.com".parse().unwrap(), &"example.org".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"http://example.org".parse().unwrap(), &"example.org".parse().unwrap()),
+            Some(super::MatchReason::DomainNameInBlockedURL),
+        );
+
+        assert_eq!(
+            super::addr_match(&"test.example.com".parse().unwrap(), &"*.example.org".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"test.example.org".parse().unwrap(), &"*.example.org".parse().unwrap()),
+            Some(super::MatchReason::WildcardContainsBlockedDomain),
+        );
+        assert_eq!(
+            super::addr_match(&"*.example.com".parse().unwrap(), &"*.example.org".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"*.example.org".parse().unwrap(), &"*.example.org".parse().unwrap()),
+            Some(super::MatchReason::WildcardEquals),
+        );
+        assert_eq!(
+            super::addr_match(&"*.com".parse().unwrap(), &"*.example.org".parse().unwrap()),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(&"*.org".parse().unwrap(), &"*.example.org".parse().unwrap()),
+            Some(super::MatchReason::WildcardInBlockedWildcard),
+        );
+        assert_eq!(
+            super::addr_match(
+                &"*.test.example.com".parse().unwrap(),
+                &"*.example.org".parse().unwrap()
+            ),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(
+                &"*.test.example.org".parse().unwrap(),
+                &"*.example.org".parse().unwrap()
+            ),
+            Some(super::MatchReason::WildcardContainsBlockedWildcard),
+        );
+
+        assert_eq!(
+            super::addr_match(
+                &"http://example.com/test".parse().unwrap(),
+                &"http://example.org/test".parse().unwrap()
+            ),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(
+                &"http://example.org/test".parse().unwrap(),
+                &"http://example.org/test".parse().unwrap()
+            ),
+            Some(super::MatchReason::URLEquals),
+        );
+        assert_eq!(
+            super::addr_match(
+                &"http://example.com/test/test2".parse().unwrap(),
+                &"http://example.org/test".parse().unwrap()
+            ),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(
+                &"http://example.org/test/test2".parse().unwrap(),
+                &"http://example.org/test".parse().unwrap()
+            ),
+            Some(super::MatchReason::URLContainsBlockedURL),
+        );
+        assert_eq!(
+            super::addr_match(
+                &"http://example.com/".parse().unwrap(),
+                &"http://example.org/test".parse().unwrap()
+            ),
+            None,
+        );
+        assert_eq!(
+            super::addr_match(
+                &"http://example.org/".parse().unwrap(),
+                &"http://example.org/test".parse().unwrap()
+            ),
+            Some(super::MatchReason::URLInBlockedURL),
+        );
+    }
 }
