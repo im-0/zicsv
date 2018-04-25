@@ -117,7 +117,7 @@ enum Command {
             short = "O",
             long = "output-format",
             default_value = "human-readable",
-            raw(possible_values = "&OutputFormat::variants()", case_insensitive = "true")
+            raw(possible_values = "&OutputFormat::variants()")
         )]
         output_format: OutputFormat,
 
