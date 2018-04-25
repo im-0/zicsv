@@ -18,5 +18,6 @@ serde_derive = { version = "*", default_features = false }
 serde_json = { version = "*", default_features = false }
 structopt = { version = "*", default_features = false }
 structopt-derive = { version = "*", default_features = false }
+trust-dns-resolver = { version = "*", default_features = false }
 url = { version = "*", default_features = false }
 zicsv = { version = "*", path = "../zicsv", features = ["serialization"] }

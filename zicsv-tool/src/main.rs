@@ -28,6 +28,7 @@ extern crate structopt;
 #[macro_use]
 extern crate structopt_derive;
 
+extern crate trust_dns_resolver;
 extern crate url;
 
 extern crate zicsv;
