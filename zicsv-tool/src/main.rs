@@ -46,6 +46,7 @@ pub enum OutputFormat {
     JSON,
 }
 
+// TODO: Support different output formats for "select" and "updated".
 impl OutputFormat {
     fn variants() -> Vec<&'static str> {
         vec!["human-readable", "pretty-json", "json"]
@@ -163,6 +164,7 @@ fn real_main() -> Result<(), failure::Error> {
 
     use structopt::StructOpt;
 
+    // TODO: Also generate auto-completion scripts.
     let options = Options::from_args();
 
     let reader = create_reader(&options)?;
