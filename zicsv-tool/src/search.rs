@@ -11,6 +11,24 @@ use zicsv;
 
 use print_err;
 
+fn resolve_helper<T, F>(
+    record_type: &str,
+    resolve_result: trust_dns_resolver::error::ResolveResult<T>,
+    f: F,
+) -> Vec<Result<zicsv::Address, failure::Error>>
+where
+    F: Fn(T) -> Vec<Result<zicsv::Address, failure::Error>>,
+{
+    match resolve_result {
+        Ok(response) => f(response),
+
+        Err(error) => match error.kind() {
+            trust_dns_resolver::error::ResolveErrorKind::NoRecordsFound(_) => vec![],
+            _ => vec![Err(format_err!("{} resolution: {}", record_type, error))],
+        },
+    }
+}
+
 fn extract_more_info(
     address: &zicsv::Address,
     resolver: &trust_dns_resolver::Resolver,
@@ -31,40 +49,33 @@ fn extract_more_info(
         zicsv::Address::DomainName(ref domain) => {
             // TODO: Try to resolve multiple times.
             // For some hosts (example: google.com) DNS server may return different addresses every time.
-            let mut all_resolved = match resolver.lookup_ip(domain) {
-                Ok(response) => response
+            let mut all_resolved = resolve_helper("IP", resolver.lookup_ip(domain), |response| {
+                response
                     .iter()
                     .filter_map(|resolved_addr| match resolved_addr {
                         std::net::IpAddr::V4(ipv4_addr) => Some(Ok(zicsv::Address::IPv4(ipv4_addr))),
                         // IPv6 is not supported.
                         _ => None,
                     })
-                    .collect(),
+                    .collect()
+            });
 
-                Err(error) => match error.kind() {
-                    trust_dns_resolver::error::ResolveErrorKind::NoRecordsFound(_) => vec![],
-                    _ => vec![Err(format_err!("IP resolution: {}", error))],
+            let mut cname_resolved = resolve_helper(
+                "CNAME",
+                resolver.lookup(domain, trust_dns_proto::rr::record_type::RecordType::CNAME),
+                |response| {
+                    response
+                        .iter()
+                        .filter_map(|resolved_cname| match resolved_cname {
+                            trust_dns_proto::rr::record_data::RData::CNAME(cname) => {
+                                Some(zicsv::Address::domain_name_from_str(&cname.to_utf8()))
+                            },
+                            // Ignore other types.
+                            _ => None,
+                        })
+                        .collect()
                 },
-            };
-
-            let mut cname_resolved = match resolver.lookup(domain, trust_dns_proto::rr::record_type::RecordType::CNAME)
-            {
-                Ok(response) => response
-                    .iter()
-                    .filter_map(|resolved_cname| match resolved_cname {
-                        trust_dns_proto::rr::record_data::RData::CNAME(cname) => {
-                            Some(zicsv::Address::domain_name_from_str(&cname.to_utf8()))
-                        },
-                        // Ignore other types.
-                        _ => None,
-                    })
-                    .collect(),
-
-                Err(error) => match error.kind() {
-                    trust_dns_resolver::error::ResolveErrorKind::NoRecordsFound(_) => vec![],
-                    _ => vec![Err(format_err!("CNAME resolution: {}", error))],
-                },
-            };
+            );
             all_resolved.extend(cname_resolved.drain(..));
 
             all_resolved
