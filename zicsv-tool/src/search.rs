@@ -150,8 +150,6 @@ enum MatchReason {
     DomainNameEquals,
     /// Domain name matches blocked wildcard domain name.
     DomainNameInBlockedWildcard,
-    /// Domain name is used in blocked URL.
-    DomainNameInBlockedURL,
 
     /// Wildcard domain name is matched by blocked domain name.
     WildcardContainsBlockedDomain,
@@ -188,7 +186,6 @@ impl std::fmt::Display for MatchReason {
 
                 MatchReason::DomainNameEquals => "Domain name is equal to blocked domain name",
                 MatchReason::DomainNameInBlockedWildcard => "Domain name matches blocked wildcard domain name",
-                MatchReason::DomainNameInBlockedURL => "Domain name is used in blocked URL",
 
                 MatchReason::WildcardContainsBlockedDomain => "Wildcard domain name is matched by blocked domain name",
                 MatchReason::WildcardEquals => "Wildcard domain name is equal to blocked wildcard domain name",
@@ -286,14 +283,6 @@ fn addr_match(blocked_address: &zicsv::Address, address: &zicsv::Address) -> Opt
                     None
                 }
             },
-
-            zicsv::Address::URL(ref blocked_url) => blocked_url.host_str().and_then(|blocked_domain| {
-                if blocked_domain == domain {
-                    Some(MatchReason::DomainNameInBlockedURL)
-                } else {
-                    None
-                }
-            }),
 
             _ => None,
         },
@@ -694,14 +683,6 @@ mod tests {
         assert_eq!(
             super::addr_match(&"*".parse().unwrap(), &"example.org".parse().unwrap()),
             Some(super::MatchReason::DomainNameInBlockedWildcard),
-        );
-        assert_eq!(
-            super::addr_match(&"http://example.com".parse().unwrap(), &"example.org".parse().unwrap()),
-            None,
-        );
-        assert_eq!(
-            super::addr_match(&"http://example.org".parse().unwrap(), &"example.org".parse().unwrap()),
-            Some(super::MatchReason::DomainNameInBlockedURL),
         );
 
         assert_eq!(
