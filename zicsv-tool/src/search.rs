@@ -3,6 +3,7 @@ use std;
 use failure;
 use serde;
 use serde_json;
+use trust_dns_proto;
 use trust_dns_resolver;
 use url;
 
@@ -28,19 +29,45 @@ fn extract_more_info(
         },
 
         zicsv::Address::DomainName(ref domain) => {
-            // TODO: Resolve CNAME aliases.
-            match resolver.lookup_ip(domain) {
+            // TODO: Try to resolve multiple times.
+            // For some hosts (example: google.com) DNS server may return different addresses every time.
+            let mut all_resolved = match resolver.lookup_ip(domain) {
                 Ok(response) => response
                     .iter()
-                    .filter_map(|resolved_addr_result| match resolved_addr_result {
+                    .filter_map(|resolved_addr| match resolved_addr {
                         std::net::IpAddr::V4(ipv4_addr) => Some(Ok(zicsv::Address::IPv4(ipv4_addr))),
                         // IPv6 is not supported.
                         _ => None,
                     })
                     .collect(),
 
-                Err(error) => vec![Err(format_err!("DNS resolution: {}", error))],
-            }
+                Err(error) => match error.kind() {
+                    trust_dns_resolver::error::ResolveErrorKind::NoRecordsFound(_) => vec![],
+                    _ => vec![Err(format_err!("IP resolution: {}", error))],
+                },
+            };
+
+            let mut cname_resolved = match resolver.lookup(domain, trust_dns_proto::rr::record_type::RecordType::CNAME)
+            {
+                Ok(response) => response
+                    .iter()
+                    .filter_map(|resolved_cname| match resolved_cname {
+                        trust_dns_proto::rr::record_data::RData::CNAME(cname) => {
+                            Some(zicsv::Address::domain_name_from_str(&cname.to_utf8()))
+                        },
+                        // Ignore other types.
+                        _ => None,
+                    })
+                    .collect(),
+
+                Err(error) => match error.kind() {
+                    trust_dns_resolver::error::ResolveErrorKind::NoRecordsFound(_) => vec![],
+                    _ => vec![Err(format_err!("CNAME resolution: {}", error))],
+                },
+            };
+            all_resolved.extend(cname_resolved.drain(..));
+
+            all_resolved
         },
 
         _ => vec![],
