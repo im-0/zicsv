@@ -1,0 +1,27 @@
+#!/bin/sh -eu
+
+OUT_FNAME="dump.csv"
+TEMP_FNAME=".dump.csv.new"
+
+MIRRORS="https://github.com/zapret-info/z-i/raw/master/dump.csv"
+MIRRORS="${MIRRORS} https://sourceforge.net/p/z-i/code-0/HEAD/tree/dump.csv?format=raw"
+MIRRORS="${MIRRORS} https://app.assembla.com/spaces/z-i/git/source/master/dump.csv?_format=raw"
+
+for mirror in ${MIRRORS}; do
+    echo "Trying mirror: ${mirror}"
+    curl \
+            --connect-timeout 15 \
+            --location \
+            --output "${TEMP_FNAME}" \
+            "${mirror}" && break
+done
+if [ $? -ne 0 ]; then
+    echo "ERROR: Unable to download dump.csv from any mirror!" >&2
+    exit 1
+fi
+
+mv -f "${TEMP_FNAME}" "${OUT_FNAME}"
+
+echo
+echo "Done!"
+ls -lh "${OUT_FNAME}"
