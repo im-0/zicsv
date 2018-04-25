@@ -8,7 +8,8 @@ keywords = ["zapret-info", "parser"]
 categories = []
 publish = false
 repository = "https://github.com/im-0/zicsv"
-documentation = "https://github.com/im-0/zicsv"
+documentation = "https://docs.rs/crate/zicsv"
+readme = "README.md"
 
 [features]
 default = []
@@ -27,5 +28,7 @@ url = { version = "*", default_features = false }
 url_serde = { version = "*", default_features = false, optional = true }
 
 [dev-dependencies]
+glob = { version = "*", default_features = false }
 pretty_assertions = { version = "*", default_features = false }
 serde_json = { version = "*", default_features = false }
+which = { version = "*", default_features = false }

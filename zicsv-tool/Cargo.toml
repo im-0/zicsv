@@ -9,6 +9,7 @@ categories = []
 publish = false
 repository = "https://github.com/im-0/zicsv"
 documentation = "https://github.com/im-0/zicsv"
+readme = "README.md"
 
 [dependencies]
 failure = { version = "*", default_features = false, features = ["std"] }
