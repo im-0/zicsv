@@ -83,7 +83,7 @@ enum Command {
         disable_pretty: bool,
     },
 
-    #[structopt(name = "select", about = "Print selected types of blocked addresses into stdout")]
+    #[structopt(name = "select", about = "Print selected types of blocked addresses")]
     Select {
         #[structopt(short = "4", long = "ipv4", help = "IPv4 addresses")]
         ipv4: bool,
