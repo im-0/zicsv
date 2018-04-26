@@ -56,15 +56,16 @@ elif [ "${1}" = "script" ]; then
                 features=""
             fi
 
-            cargo build --verbose $targets $features
             # tests/skeptic.rs fails without this.
             cargo clean
             cargo test --verbose $features
 
-            cargo build --release --verbose $targets $features
             # tests/skeptic.rs fails without this.
             cargo clean
             cargo test --release --verbose $features
+
+            cargo build --verbose $targets $features
+            cargo build --release --verbose $targets $features
         )
     done
 
