@@ -1,3 +1,5 @@
+[![crates.io](https://img.shields.io/crates/v/zicsv.svg?maxAge=3600)](https://crates.io/crates/zicsv)
+
 # zicsv
 
 `zicsv` - Parser library for Zapret-Info CSV lists.

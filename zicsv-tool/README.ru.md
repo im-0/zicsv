@@ -1,3 +1,5 @@
+[![crates.io](https://img.shields.io/crates/v/zicsv-tool.svg?maxAge=3600)](https://crates.io/crates/zicsv-tool)
+
 [Same document in English](README.md)
 
 # zicsv-tool

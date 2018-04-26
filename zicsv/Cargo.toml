@@ -11,6 +11,9 @@ repository = "https://github.com/im-0/zicsv"
 documentation = "https://docs.rs/crate/zicsv"
 readme = "README.md"
 
+[badges]
+travis-ci = { repository = "im-0/zicsv", branch = "master" }
+
 [features]
 default = []
 serialization = ["chrono/serde", "serde", "serde_derive", "url/serde", "url_serde"]

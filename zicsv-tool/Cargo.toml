@@ -11,6 +11,9 @@ repository = "https://github.com/im-0/zicsv"
 documentation = "https://github.com/im-0/zicsv"
 readme = "README.md"
 
+[badges]
+travis-ci = { repository = "im-0/zicsv", branch = "master" }
+
 [dependencies]
 failure = { version = "*", default_features = false, features = ["std"] }
 ipnet = { version = "*", default_features = false }
