@@ -1,7 +1,7 @@
 [package]
 name = "zicsv-tool"
 description = "Parser tool for Zapret-Info CSV lists"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Ivan Mironov <mironov.ivan@gmail.com>"]
 license = "MIT/Apache-2.0"
 keywords = ["zapret-info", "parser"]
