@@ -6,13 +6,13 @@ authors = ["Ivan Mironov <mironov.ivan@gmail.com>"]
 license = "MIT/Apache-2.0"
 keywords = ["zapret-info", "parser"]
 categories = []
-publish = false
+publish = true
 repository = "https://github.com/im-0/zicsv"
 documentation = "https://docs.rs/crate/zicsv"
 readme = "README.md"
 
 [badges]
-travis-ci = { repository = "im-0/zicsv", branch = "master" }
+travis-ci = { repository = "im-0/zicsv", branch = "b0.1.0" }
 
 [features]
 default = []
@@ -20,18 +20,18 @@ serialization = ["chrono/serde", "serde", "serde_derive", "url/serde", "url_serd
 unstable = []
 
 [dependencies]
-chrono = { version = "*", default_features = false }
-csv = { version = "*", default_features = false }
-encoding = { version = "*", default_features = false }
-failure = { version = "*", default_features = false, features = ["std"] }
-ipnet = { version = "*", default_features = false }
-serde = { version = "*", default_features = false, optional = true }
-serde_derive = { version = "*", default_features = false, optional = true }
-url = { version = "*", default_features = false }
-url_serde = { version = "*", default_features = false, optional = true }
+chrono = { version = "0.4", default_features = false }
+csv = { version = "0.15", default_features = false }
+encoding = { version = "0.2", default_features = false }
+failure = { version = "0.1", default_features = false, features = ["std"] }
+ipnet = { version = "1.2", default_features = false }
+serde = { version = "1.0", default_features = false, optional = true }
+serde_derive = { version = "1.0", default_features = false, optional = true }
+url = { version = "1.7", default_features = false }
+url_serde = { version = "0.2", default_features = false, optional = true }
 
 [dev-dependencies]
-glob = { version = "*", default_features = false }
-pretty_assertions = { version = "*", default_features = false }
-serde_json = { version = "*", default_features = false }
-which = { version = "*", default_features = false }
+glob = { version = "0.2", default_features = false }
+pretty_assertions = { version = "0.5", default_features = false }
+serde_json = { version = "1.0", default_features = false }
+which = { version = "2.0", default_features = false }

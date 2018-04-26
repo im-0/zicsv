@@ -1,4 +1,4 @@
-[![Build Status](https://api.travis-ci.org/im-0/zicsv.svg?branch=master)](https://travis-ci.org/im-0/zicsv)
+[![Build Status](https://api.travis-ci.org/im-0/zicsv.svg?branch=b0.1.0)](https://travis-ci.org/im-0/zicsv)
 [![crates.io](https://img.shields.io/crates/v/zicsv.svg?maxAge=3600)](https://crates.io/crates/zicsv)
 ![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache_2.0-blue.svg)
 

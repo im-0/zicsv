@@ -6,23 +6,23 @@ authors = ["Ivan Mironov <mironov.ivan@gmail.com>"]
 license = "MIT/Apache-2.0"
 keywords = ["zapret-info", "parser"]
 categories = []
-publish = false
+publish = true
 repository = "https://github.com/im-0/zicsv"
 documentation = "https://github.com/im-0/zicsv"
 readme = "README.md"
 
 [badges]
-travis-ci = { repository = "im-0/zicsv", branch = "master" }
+travis-ci = { repository = "im-0/zicsv", branch = "b0.1.0" }
 
 [dependencies]
-failure = { version = "*", default_features = false, features = ["std"] }
-ipnet = { version = "*", default_features = false }
-serde = { version = "*", default_features = false }
-serde_derive = { version = "*", default_features = false }
-serde_json = { version = "*", default_features = false }
-structopt = { version = "*", default_features = false }
-structopt-derive = { version = "*", default_features = false }
-trust-dns-proto = { version = "*", default_features = false }
-trust-dns-resolver = { version = "*", default_features = false }
-url = { version = "*", default_features = false }
-zicsv = { version = "*", path = "../zicsv", features = ["serialization"] }
+failure = { version = "0.1", default_features = false, features = ["std"] }
+ipnet = { version = "1.2", default_features = false }
+serde = { version = "1.0", default_features = false }
+serde_derive = { version = "1.0", default_features = false }
+serde_json = { version = "1.0", default_features = false }
+structopt = { version = "0.2", default_features = false }
+structopt-derive = { version = "0.2", default_features = false }
+trust-dns-proto = { version = "0.3", default_features = false }
+trust-dns-resolver = { version = "0.8", default_features = false }
+url = { version = "1.7", default_features = false }
+zicsv = { version = "0.1", path = "../zicsv", features = ["serialization"] }

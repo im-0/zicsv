@@ -17,7 +17,7 @@ Add this into your `Cargo.toml`:
 
 ```toml
 [dependencies]
-zicsv = "*"
+zicsv = "0.1"
 ```
 
 Example code:
@@ -55,7 +55,7 @@ repository before running this example.
 ### Running examples
 
 ```bash
-git clone --branch master https://github.com/im-0/zicsv
+git clone --branch b0.1.0 https://github.com/im-0/zicsv
 cd zicsv
 ./download-dump
 cargo run --package zicsv --example parse
