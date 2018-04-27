@@ -26,3 +26,6 @@ trust-dns-proto = { version = "*", default_features = false }
 trust-dns-resolver = { version = "*", default_features = false }
 url = { version = "*", default_features = false }
 zicsv = { version = "*", path = "../zicsv", features = ["serialization"] }
+
+[dev-dependencies]
+pretty_assertions = { version = "*", default_features = false }

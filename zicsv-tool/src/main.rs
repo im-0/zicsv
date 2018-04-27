@@ -18,6 +18,10 @@ extern crate failure;
 
 extern crate ipnet;
 
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
+
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
