@@ -12,6 +12,9 @@ use zicsv;
 
 use print_err;
 
+// TODO: Make configurable.
+const MAX_DNS_RECURSION_DEPTH: usize = 10;
+
 fn resolve_helper<T, F>(
     record_type: &str,
     resolve_result: trust_dns_resolver::error::ResolveResult<T>,
@@ -98,32 +101,80 @@ fn extract_more_info(
     }
 }
 
+/// Tracks resolving recursion depth.
+#[derive(Debug, Eq, Hash, PartialEq)]
+struct AddressWithDepth {
+    address: zicsv::Address,
+    depth: usize,
+}
+
+impl AddressWithDepth {
+    fn into_inner(self) -> zicsv::Address {
+        self.address
+    }
+
+    fn inner(&self) -> &zicsv::Address {
+        &self.address
+    }
+
+    fn next_depth(&self, max_depth: usize) -> Result<usize, failure::Error> {
+        let next_depth = match self.address {
+            zicsv::Address::DomainName(_) => self.depth + 1,
+            _ => self.depth,
+        };
+
+        if next_depth > max_depth {
+            Err(format_err!("Exceeded maximum DNS resolution depth of {}", max_depth))
+        } else {
+            Ok(next_depth)
+        }
+    }
+
+    fn from_with_depth(address: zicsv::Address, depth: usize) -> Self {
+        Self { address, depth }
+    }
+}
+
+impl From<zicsv::Address> for AddressWithDepth {
+    fn from(address: zicsv::Address) -> Self {
+        Self::from_with_depth(address, 0)
+    }
+}
+
 type AddressesSet = indexmap::IndexSet<zicsv::Address>;
+type AddressesWithDepthSet = indexmap::IndexSet<AddressWithDepth>;
 
 fn extract_all_info(
     address: &str,
     resolver: &trust_dns_resolver::Resolver,
     n_errors: &mut usize,
+    max_depth: usize,
 ) -> Result<AddressesSet, failure::Error> {
-    let mut extracted = AddressesSet::new();
+    let mut extracted = AddressesWithDepthSet::new();
     let _ = extracted.insert(address
-        .parse()
-        .map_err(|error: failure::Error| error.context(format!("Address: \"{}\"", address)))?);
+        .parse::<zicsv::Address>()
+        .map_err(|error: failure::Error| error.context(format!("Address: \"{}\"", address)))
+        .map(From::from)?);
 
     let mut next_n = 0;
     while next_n < extracted.len() {
-        let more_info = extract_more_info(
-            extracted.get_index(next_n).expect("Logic error: extracted.get_index()"),
-            resolver,
-        );
+        let (next_depth, more_info) = {
+            let current = extracted.get_index(next_n).expect("Logic error: extracted.get_index()");
+            match current.next_depth(max_depth) {
+                Ok(next_depth) => (next_depth, extract_more_info(current.inner(), resolver)),
+                Err(error) => (0, vec![Err(error)]),
+            }
+        };
+
         extracted.extend(
             more_info
                 .into_iter()
                 .map(|item| {
-                    item.map_err(|error| {
-                        *n_errors += 1;
-                        print_err::print_error(&error.context(format!("Original address: \"{}\"", address)).into());
-                    })
+                    item.map(|address| AddressWithDepth::from_with_depth(address, next_depth))
+                        .map_err(|error| {
+                            *n_errors += 1;
+                            print_err::print_error(&error.context(format!("Original address: \"{}\"", address)).into());
+                        })
                 })
                 .filter_map(Result::ok),
         );
@@ -132,7 +183,7 @@ fn extract_all_info(
         debug!("extract_all_info(), next_n == {}, extracted:\n{:#?}", next_n, extracted);
     }
 
-    Ok(extracted)
+    Ok(extracted.into_iter().map(AddressWithDepth::into_inner).collect())
 }
 
 mod serialize_rc_record {
@@ -438,7 +489,12 @@ where
     let addresses: Result<Vec<_>, _> = orig_addresses
         .into_iter()
         .map(|orig_address| {
-            extract_all_info(orig_address.trim(), &resolver, &mut n_prepare_errors).map(|sub_addresses| Address {
+            extract_all_info(
+                orig_address.trim(),
+                &resolver,
+                &mut n_prepare_errors,
+                MAX_DNS_RECURSION_DEPTH,
+            ).map(|sub_addresses| Address {
                 original_address: orig_address,
                 addresses: sub_addresses
                     .into_iter()
@@ -581,12 +637,12 @@ mod tests {
         let resolver = create_resolver();
 
         let mut n_errors = 0usize;
-        assert!(super::extract_all_info("", &resolver, &mut n_errors).is_err());
+        assert!(super::extract_all_info("", &resolver, &mut n_errors, super::MAX_DNS_RECURSION_DEPTH).is_err());
         assert_eq!(n_errors, 0);
 
         let mut n_errors = 0usize;
         assert_eq!(
-            super::extract_all_info("127.0.0.1", &resolver, &mut n_errors).unwrap(),
+            super::extract_all_info("127.0.0.1", &resolver, &mut n_errors, super::MAX_DNS_RECURSION_DEPTH).unwrap(),
             vec![zicsv::Address::IPv4("127.0.0.1".parse().unwrap())]
                 .into_iter()
                 .collect::<super::AddressesSet>()
@@ -594,8 +650,12 @@ mod tests {
         assert_eq!(n_errors, 0);
 
         let mut n_errors = 0usize;
-        let mut from_localhost_url = super::extract_all_info("http://localhost", &resolver, &mut n_errors)
-            .unwrap()
+        let mut from_localhost_url = super::extract_all_info(
+            "http://localhost",
+            &resolver,
+            &mut n_errors,
+            super::MAX_DNS_RECURSION_DEPTH,
+        ).unwrap()
             .into_iter();
         assert_eq!(n_errors, 0);
         assert_eq!(
@@ -616,7 +676,12 @@ mod tests {
 
         let mut n_errors = 0usize;
         assert_eq!(
-            super::extract_all_info("http://1.2.3.4", &resolver, &mut n_errors).unwrap(),
+            super::extract_all_info(
+                "http://1.2.3.4",
+                &resolver,
+                &mut n_errors,
+                super::MAX_DNS_RECURSION_DEPTH
+            ).unwrap(),
             vec![
                 zicsv::Address::URL("http://1.2.3.4".parse().unwrap()),
                 zicsv::Address::IPv4("1.2.3.4".parse().unwrap()),
@@ -627,12 +692,33 @@ mod tests {
 
         let mut n_errors = 0usize;
         assert_eq!(
-            super::extract_all_info("http://[1080::8:800:200C:417A]", &resolver, &mut n_errors).unwrap(),
+            super::extract_all_info(
+                "http://[1080::8:800:200C:417A]",
+                &resolver,
+                &mut n_errors,
+                super::MAX_DNS_RECURSION_DEPTH
+            ).unwrap(),
             vec![zicsv::Address::URL("http://[1080::8:800:200C:417A]".parse().unwrap())]
                 .into_iter()
                 .collect::<super::AddressesSet>()
         );
         assert_eq!(n_errors, 1);
+    }
+
+    #[test]
+    fn extract_all_info_limited_depth() {
+        let resolver = create_resolver();
+
+        let mut n_errors = 0usize;
+        let mut from_localhost = super::extract_all_info("localhost", &resolver, &mut n_errors, 0)
+            .unwrap()
+            .into_iter();
+        assert_eq!(n_errors, 1);
+        assert_eq!(
+            from_localhost.next(),
+            Some(zicsv::Address::DomainName("localhost".into()))
+        );
+        assert_eq!(from_localhost.next(), None);
     }
 
     #[test]
