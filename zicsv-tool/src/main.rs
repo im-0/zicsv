@@ -127,6 +127,10 @@ enum Command {
                     raw(possible_values = "&OutputFormat::variants()"))]
         output_format: OutputFormat,
 
+        #[structopt(name = "DEPTH LIMIT", short = "D", long = "dns-depth-limit", default_value = "10",
+                    help = "Limit maximum depth of DNS name resolution")]
+        dns_depth_limit: usize,
+
         #[structopt(name = "ADDRESS")]
         addresses: Vec<String>,
     },
@@ -209,11 +213,12 @@ fn real_main() -> Result<(), failure::Error> {
 
         Command::Search {
             addresses,
+            dns_depth_limit,
             output_format,
         } => {
             ensure!(!addresses.is_empty(), "At least one address should be specified");
 
-            search::search(&addresses, reader, &mut writer, &output_format)?
+            search::search(&addresses, reader, &mut writer, &output_format, dns_depth_limit)?
         }
     }
     writer.flush()?;

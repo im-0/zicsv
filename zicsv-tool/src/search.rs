@@ -12,9 +12,6 @@ use zicsv;
 
 use print_err;
 
-// TODO: Make configurable.
-const MAX_DNS_RECURSION_DEPTH: usize = 10;
-
 fn resolve_helper<T, F>(
     record_type: &str,
     resolve_result: trust_dns_resolver::error::ResolveResult<T>,
@@ -482,6 +479,7 @@ pub fn search<StreamWriter>(
     mut reader: Box<zicsv::GenericReader>,
     writer: &mut StreamWriter,
     output_format: &super::OutputFormat,
+    max_depth: usize,
 ) -> Result<(), failure::Error>
 where
     StreamWriter: std::io::Write,
@@ -494,20 +492,17 @@ where
     let addresses: Result<Vec<_>, _> = orig_addresses
         .into_iter()
         .map(|orig_address| {
-            extract_all_info(
-                orig_address.trim(),
-                &resolver,
-                &mut n_prepare_errors,
-                MAX_DNS_RECURSION_DEPTH,
-            ).map(|sub_addresses| Address {
-                original_address: orig_address,
-                addresses: sub_addresses
-                    .into_iter()
-                    .map(|sub_address| SubAddressWithMatches {
-                        address: sub_address,
-                        matches: Vec::new(),
-                    })
-                    .collect(),
+            extract_all_info(orig_address.trim(), &resolver, &mut n_prepare_errors, max_depth).map(|sub_addresses| {
+                Address {
+                    original_address: orig_address,
+                    addresses: sub_addresses
+                        .into_iter()
+                        .map(|sub_address| SubAddressWithMatches {
+                            address: sub_address,
+                            matches: Vec::new(),
+                        })
+                        .collect(),
+                }
             })
         })
         .collect();
@@ -642,12 +637,12 @@ mod tests {
         let resolver = create_resolver();
 
         let mut n_errors = 0usize;
-        assert!(super::extract_all_info("", &resolver, &mut n_errors, super::MAX_DNS_RECURSION_DEPTH).is_err());
+        assert!(super::extract_all_info("", &resolver, &mut n_errors, 0).is_err());
         assert_eq!(n_errors, 0);
 
         let mut n_errors = 0usize;
         assert_eq!(
-            super::extract_all_info("127.0.0.1", &resolver, &mut n_errors, super::MAX_DNS_RECURSION_DEPTH).unwrap(),
+            super::extract_all_info("127.0.0.1", &resolver, &mut n_errors, 0).unwrap(),
             vec![zicsv::Address::IPv4("127.0.0.1".parse().unwrap())]
                 .into_iter()
                 .collect::<super::AddressesSet>()
@@ -655,12 +650,8 @@ mod tests {
         assert_eq!(n_errors, 0);
 
         let mut n_errors = 0usize;
-        let mut from_localhost_url = super::extract_all_info(
-            "http://localhost",
-            &resolver,
-            &mut n_errors,
-            super::MAX_DNS_RECURSION_DEPTH,
-        ).unwrap()
+        let mut from_localhost_url = super::extract_all_info("http://localhost", &resolver, &mut n_errors, 1)
+            .unwrap()
             .into_iter();
         assert_eq!(n_errors, 0);
         assert_eq!(
@@ -681,12 +672,7 @@ mod tests {
 
         let mut n_errors = 0usize;
         assert_eq!(
-            super::extract_all_info(
-                "http://1.2.3.4",
-                &resolver,
-                &mut n_errors,
-                super::MAX_DNS_RECURSION_DEPTH
-            ).unwrap(),
+            super::extract_all_info("http://1.2.3.4", &resolver, &mut n_errors, 0).unwrap(),
             vec![
                 zicsv::Address::URL("http://1.2.3.4".parse().unwrap()),
                 zicsv::Address::IPv4("1.2.3.4".parse().unwrap()),
@@ -697,12 +683,7 @@ mod tests {
 
         let mut n_errors = 0usize;
         assert_eq!(
-            super::extract_all_info(
-                "http://[1080::8:800:200C:417A]",
-                &resolver,
-                &mut n_errors,
-                super::MAX_DNS_RECURSION_DEPTH
-            ).unwrap(),
+            super::extract_all_info("http://[1080::8:800:200C:417A]", &resolver, &mut n_errors, 0).unwrap(),
             vec![zicsv::Address::URL("http://[1080::8:800:200C:417A]".parse().unwrap())]
                 .into_iter()
                 .collect::<super::AddressesSet>()
