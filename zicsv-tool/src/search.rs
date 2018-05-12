@@ -1,6 +1,7 @@
 use std;
 
 use failure;
+use indexmap;
 use serde;
 use serde_json;
 use trust_dns_proto;
@@ -97,19 +98,24 @@ fn extract_more_info(
     }
 }
 
+type AddressesSet = indexmap::IndexSet<zicsv::Address>;
+
 fn extract_all_info(
     address: &str,
     resolver: &trust_dns_resolver::Resolver,
     n_errors: &mut usize,
-) -> Result<zicsv::Addresses, failure::Error> {
-    let mut extracted = zicsv::Addresses::new();
-    extracted.push(address
+) -> Result<AddressesSet, failure::Error> {
+    let mut extracted = AddressesSet::new();
+    let _ = extracted.insert(address
         .parse()
         .map_err(|error: failure::Error| error.context(format!("Address: \"{}\"", address)))?);
 
     let mut next_n = 0;
     while next_n < extracted.len() {
-        let more_info = extract_more_info(&extracted[next_n], resolver);
+        let more_info = extract_more_info(
+            extracted.get_index(next_n).expect("Logic error: extracted.get_index()"),
+            resolver,
+        );
         extracted.extend(
             more_info
                 .into_iter()
@@ -582,6 +588,8 @@ mod tests {
         assert_eq!(
             super::extract_all_info("127.0.0.1", &resolver, &mut n_errors).unwrap(),
             vec![zicsv::Address::IPv4("127.0.0.1".parse().unwrap())]
+                .into_iter()
+                .collect::<super::AddressesSet>()
         );
         assert_eq!(n_errors, 0);
 
@@ -612,7 +620,8 @@ mod tests {
             vec![
                 zicsv::Address::URL("http://1.2.3.4".parse().unwrap()),
                 zicsv::Address::IPv4("1.2.3.4".parse().unwrap()),
-            ]
+            ].into_iter()
+                .collect::<super::AddressesSet>()
         );
         assert_eq!(n_errors, 0);
 
@@ -620,6 +629,8 @@ mod tests {
         assert_eq!(
             super::extract_all_info("http://[1080::8:800:200C:417A]", &resolver, &mut n_errors).unwrap(),
             vec![zicsv::Address::URL("http://[1080::8:800:200C:417A]".parse().unwrap())]
+                .into_iter()
+                .collect::<super::AddressesSet>()
         );
         assert_eq!(n_errors, 1);
     }
