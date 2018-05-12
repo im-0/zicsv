@@ -116,13 +116,8 @@ enum Command {
 
     #[structopt(name = "search", about = "Search blocked addresses")]
     Search {
-        #[structopt(
-            name = "OUTPUT FORMAT",
-            short = "O",
-            long = "output-format",
-            default_value = "human-readable",
-            raw(possible_values = "&OutputFormat::variants()")
-        )]
+        #[structopt(name = "OUTPUT FORMAT", short = "O", long = "output-format", default_value = "human-readable",
+                    raw(possible_values = "&OutputFormat::variants()"))]
         output_format: OutputFormat,
 
         #[structopt(name = "ADDRESS")]
@@ -199,7 +194,7 @@ fn real_main() -> Result<(), failure::Error> {
             );
 
             select::select(&sopts, reader, &mut writer)?
-        },
+        }
 
         Command::Updated => writeln!(writer, "{}", reader.get_timestamp())?,
 
@@ -210,7 +205,7 @@ fn real_main() -> Result<(), failure::Error> {
             ensure!(!addresses.is_empty(), "At least one address should be specified");
 
             search::search(&addresses, reader, &mut writer, &output_format)?
-        },
+        }
     }
     writer.flush()?;
 

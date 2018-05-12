@@ -70,7 +70,7 @@ fn extract_more_info(
                         .filter_map(|resolved_cname| match *resolved_cname {
                             trust_dns_proto::rr::record_data::RData::CNAME(ref cname) => {
                                 Some(zicsv::Address::domain_name_from_str(&cname.to_utf8()))
-                            },
+                            }
 
                             // Ignore other types.
                             _ => None,
@@ -81,7 +81,7 @@ fn extract_more_info(
             all_resolved.extend(cname_resolved.drain(..));
 
             all_resolved
-        },
+        }
 
         _ => vec![],
     }
@@ -182,7 +182,7 @@ impl std::fmt::Display for MatchReason {
                 MatchReason::IPv4NetworkInBlockedIPv4Network => "IPv4 network is a subset of blocked IPv4 network",
                 MatchReason::IPv4NetworkContainsBlockedIPv4Network => {
                     "IPV4 network is a superset of blocked IPv4 network"
-                },
+                }
 
                 MatchReason::DomainNameEquals => "Domain name is equal to blocked domain name",
                 MatchReason::DomainNameInBlockedWildcard => "Domain name matches blocked wildcard domain name",
@@ -191,10 +191,10 @@ impl std::fmt::Display for MatchReason {
                 MatchReason::WildcardEquals => "Wildcard domain name is equal to blocked wildcard domain name",
                 MatchReason::WildcardInBlockedWildcard => {
                     "Wildcard domain name is a subset of blocked wildcard domain name"
-                },
+                }
                 MatchReason::WildcardContainsBlockedWildcard => {
                     "Wildcard domain name is a superset of blocked wildcard domain name"
-                },
+                }
 
                 MatchReason::URLEquals => "URL is equal to blocked URL",
                 MatchReason::URLContainsBlockedURL => "URL is a base of blocked URL",
@@ -282,7 +282,7 @@ fn addr_match(blocked_address: &zicsv::Address, address: &zicsv::Address) -> Opt
                 } else {
                     None
                 }
-            },
+            }
 
             _ => None,
         },
@@ -441,12 +441,12 @@ where
                 for address in &mut addresses {
                     find_matches(&record, address);
                 }
-            },
+            }
 
             Err(error) => {
                 n_reader_errors += 1;
                 print_err::print_error(&error);
-            },
+            }
         }
     }
 
