@@ -1,0 +1,3 @@
+#!/bin/sh -xeu
+
+exec cargo +nightly clippy --all --profile test
