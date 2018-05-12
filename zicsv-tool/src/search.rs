@@ -117,27 +117,36 @@ impl AddressWithDepth {
         &self.address
     }
 
-    fn next_depth(&self, max_depth: usize) -> Result<usize, failure::Error> {
+    fn next<Extractor>(&self, max_depth: usize, extractor: Extractor) -> Vec<Result<Self, failure::Error>>
+    where
+        Extractor: FnOnce(&zicsv::Address) -> Vec<Result<zicsv::Address, failure::Error>>,
+    {
         let next_depth = match self.address {
             zicsv::Address::DomainName(_) => self.depth + 1,
             _ => self.depth,
         };
 
         if next_depth > max_depth {
-            Err(format_err!("Exceeded maximum DNS resolution depth of {}", max_depth))
+            vec![
+                Err(format_err!("Exceeded maximum DNS resolution depth of {}", max_depth)),
+            ]
         } else {
-            Ok(next_depth)
+            extractor(self.inner())
+                .into_iter()
+                .map(|address_result| {
+                    address_result.map(|address| Self {
+                        address,
+                        depth: next_depth,
+                    })
+                })
+                .collect()
         }
-    }
-
-    fn from_with_depth(address: zicsv::Address, depth: usize) -> Self {
-        Self { address, depth }
     }
 }
 
 impl From<zicsv::Address> for AddressWithDepth {
     fn from(address: zicsv::Address) -> Self {
-        Self::from_with_depth(address, 0)
+        Self { address, depth: 0 }
     }
 }
 
@@ -158,23 +167,19 @@ fn extract_all_info(
 
     let mut next_n = 0;
     while next_n < extracted.len() {
-        let (next_depth, more_info) = {
+        let more_info = {
             let current = extracted.get_index(next_n).expect("Logic error: extracted.get_index()");
-            match current.next_depth(max_depth) {
-                Ok(next_depth) => (next_depth, extract_more_info(current.inner(), resolver)),
-                Err(error) => (0, vec![Err(error)]),
-            }
+            current.next(max_depth, |address| extract_more_info(address, resolver))
         };
 
         extracted.extend(
             more_info
                 .into_iter()
                 .map(|item| {
-                    item.map(|address| AddressWithDepth::from_with_depth(address, next_depth))
-                        .map_err(|error| {
-                            *n_errors += 1;
-                            print_err::print_error(&error.context(format!("Original address: \"{}\"", address)).into());
-                        })
+                    item.map_err(|error| {
+                        *n_errors += 1;
+                        print_err::print_error(&error.context(format!("Original address: \"{}\"", address)).into());
+                    })
                 })
                 .filter_map(Result::ok),
         );
