@@ -46,7 +46,7 @@ where
             Err(error) => {
                 n_errors += 1;
                 print_err::print_error(&error);
-            },
+            }
         }
     }
 
