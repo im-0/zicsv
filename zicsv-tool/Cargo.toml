@@ -20,7 +20,7 @@ ipnet = { version = "*", default_features = false }
 serde = { version = "*", default_features = false }
 serde_derive = { version = "*", default_features = false }
 serde_json = { version = "*", default_features = false }
-structopt = { version = "*", default_features = false }
+structopt = { version = "*", default_features = false, features = ["color", "wrap_help"] }
 structopt-derive = { version = "*", default_features = false }
 trust-dns-proto = { version = "*", default_features = false }
 trust-dns-resolver = { version = "*", default_features = false }
