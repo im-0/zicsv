@@ -16,6 +16,7 @@ travis-ci = { repository = "im-0/zicsv", branch = "master" }
 
 [dependencies]
 failure = { version = "*", default_features = false, features = ["std"] }
+indexmap = { version = "*", default_features = false }
 ipnet = { version = "*", default_features = false }
 log = { version = "*", default_features = false, features = ["release_max_level_debug"] }
 pretty_env_logger = { version = "*", default_features = false }

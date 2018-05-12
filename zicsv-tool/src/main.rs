@@ -16,6 +16,7 @@
 #[macro_use]
 extern crate failure;
 
+extern crate indexmap;
 extern crate ipnet;
 
 #[macro_use]
