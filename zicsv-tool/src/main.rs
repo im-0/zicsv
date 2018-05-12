@@ -18,9 +18,14 @@ extern crate failure;
 
 extern crate ipnet;
 
+#[macro_use]
+extern crate log;
+
 #[cfg(test)]
 #[macro_use]
 extern crate pretty_assertions;
+
+extern crate pretty_env_logger;
 
 extern crate serde;
 #[macro_use]
@@ -163,6 +168,8 @@ fn real_main() -> Result<(), failure::Error> {
     use std::io::Write;
 
     use structopt::StructOpt;
+
+    pretty_env_logger::try_init()?;
 
     // TODO: Also generate auto-completion scripts.
     let options = Options::from_args();

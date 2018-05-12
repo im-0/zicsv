@@ -96,3 +96,14 @@ http://google.com:
             Document ID: 27-31-2018/Ид2971-18
             Document date: 2018-04-16
 ```
+
+### Отладочные сообщения
+
+Используется [pretty_env_logger](https://crates.io/crates/pretty_env_logger).
+Чтобы увидеть отладночные сообщения, запустите следующую команду:
+
+```bash
+RUST_LOG=debug zicsv-tool [обычные опции]
+```
+
+Уровень журнала `trace` выключен в релизной сборке.

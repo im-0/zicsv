@@ -50,6 +50,7 @@ fn extract_more_info(
             // TODO: Resolve other types of records containing IP addresses and host aliases.
             // TODO: Try to resolve multiple times.
             // For some hosts (example: google.com) DNS server may return different addresses every time.
+            debug!("Resolving A record for \"{}\"...", domain);
             let mut all_resolved = resolve_helper("IP", resolver.lookup_ip(domain), |response| {
                 response
                     .iter()
@@ -60,7 +61,12 @@ fn extract_more_info(
                     })
                     .collect()
             });
+            debug!(
+                "Done resolving A record for \"{}\" (all_resolved:\n{:#?})",
+                domain, all_resolved
+            );
 
+            debug!("Resolving CNAME record for \"{}\"...", domain);
             let mut cname_resolved = resolve_helper(
                 "CNAME",
                 resolver.lookup(domain, trust_dns_proto::rr::record_type::RecordType::CNAME),
@@ -79,6 +85,10 @@ fn extract_more_info(
                 },
             );
             all_resolved.extend(cname_resolved.drain(..));
+            debug!(
+                "Done resolving CNAME record for \"{}\" (all_resolved:\n{:#?})",
+                domain, all_resolved
+            );
 
             all_resolved
         }
@@ -112,6 +122,8 @@ fn extract_all_info(
                 .filter_map(Result::ok),
         );
         next_n += 1;
+
+        debug!("extract_all_info(), next_n == {}, extracted:\n{:#?}", next_n, extracted);
     }
 
     Ok(extracted)

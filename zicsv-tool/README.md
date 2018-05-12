@@ -95,3 +95,14 @@ http://google.com:
             Document ID: 27-31-2018/Ид2971-18
             Document date: 2018-04-16
 ```
+
+### Debug logging
+
+[pretty_env_logger](https://crates.io/crates/pretty_env_logger) is used. Run
+following command to see debug messages:
+
+```bash
+RUST_LOG=debug zicsv-tool [usual options]
+```
+
+Log level `trace` is disabled in the release build.
