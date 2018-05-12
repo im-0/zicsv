@@ -86,6 +86,7 @@ impl std::fmt::Display for OutputFormat {
 }
 
 #[derive(StructOpt, Debug)]
+#[structopt(raw(global_settings = "&[structopt::clap::AppSettings::ColorAuto]"))]
 enum Command {
     #[structopt(name = "into-json", about = "Convert into json format")]
     IntoJson {
