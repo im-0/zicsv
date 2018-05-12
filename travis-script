@@ -13,61 +13,28 @@ is_nightly_for_clippy() {
     echo "${TRAVIS_RUST_VERSION}" | grep -qe "^nightly-.*"
 }
 
-workspace_members() {
-    sed -ne 's,^ *"\([^ "]*\)".*$,\1,p' <Cargo.toml
-}
-
-crate_has_unstable_feature() {
-    grep -qe "^ *unstable *= *\[ *\] *$" Cargo.toml
-}
-
-is_binary_crate() {
-    test -e src/main.rs
-}
-
 if [ "${1}" = "before_script" ]; then
     if is_nightly_for_clippy; then
-        cargo install clippy --version "${CLIPPY_VERSION}" --force
+        cargo "+${TRAVIS_RUST_VERSION}" install clippy --version "${CLIPPY_VERSION}" --force
     fi
 elif [ "${1}" = "script" ]; then
-    if is_nightly_for_clippy; then
-        cargo clippy --all --features unstable --all-targets
+    if is_nightly; then
+        features="--features unstable"
+    else
+        features=""
     fi
 
-    for crate in $( workspace_members ); do
-        (
-            cd "${crate}"
+    # Should go first, otherwise skeptic test will fail.
+    cargo test --all ${features}
+    cargo test --release --all ${features}
 
-            if is_nightly; then
-                targets="--all-targets"
+    if is_nightly_for_clippy; then
+        cargo "+${TRAVIS_RUST_VERSION}" clippy --all --profile test ${features}
+    fi
 
-                if crate_has_unstable_feature; then
-                    features="--features unstable"
-                else
-                    features=""
-                fi
-            else
-                if is_binary_crate; then
-                    targets=""
-                else
-                    targets="--all-targets"
-                fi
+    cargo build --all ${features}
 
-                features=""
-            fi
-
-            # tests/skeptic.rs fails without this.
-            cargo clean
-            cargo test --verbose $features
-
-            # tests/skeptic.rs fails without this.
-            cargo clean
-            cargo test --release --verbose $features
-
-            cargo build --verbose $targets $features
-            cargo build --release --verbose $targets $features
-        )
-    done
+    cargo build --release --all ${features}
 
     curl $CURL_OPTS --output "./dump.csv" "${ZI_DUMP_CSV}"
     for build_type in "debug" "release"; do
