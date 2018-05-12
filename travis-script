@@ -13,11 +13,23 @@ is_nightly_for_clippy() {
     echo "${TRAVIS_RUST_VERSION}" | grep -qe "^nightly-.*"
 }
 
+is_stable() {
+    [ "${TRAVIS_RUST_VERSION}" = "stable" ]
+}
+
 if [ "${1}" = "before_script" ]; then
     if is_nightly_for_clippy; then
         cargo "+${TRAVIS_RUST_VERSION}" install clippy --version "${CLIPPY_VERSION}" --force
     fi
+
+    if is_stable; then
+        rustup component add --toolchain stable rustfmt-preview
+    fi
 elif [ "${1}" = "script" ]; then
+    if is_stable; then
+        cargo fmt --all -- --write-mode=diff
+    fi
+
     if is_nightly; then
         features="--features unstable"
     else
