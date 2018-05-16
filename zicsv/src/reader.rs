@@ -54,10 +54,11 @@ where
     pub fn from_buf_reader(mut reader: StreamReader) -> Result<Self, failure::Error> {
         Ok(Self {
             updated: Self::parse_update_datetime(&mut reader).map_err(|error| error.context("Line number: 1"))?,
-            csv_reader: csv::Reader::from_reader(reader)
+            csv_reader: csv::ReaderBuilder::new()
                 .delimiter(b';')
                 .has_headers(false)
-                .flexible(true),
+                .flexible(true)
+                .from_reader(reader),
         })
     }
 }
@@ -106,7 +107,7 @@ pub struct Records<'a, StreamReader: 'a>
 where
     StreamReader: std::io::BufRead,
 {
-    csv_records: csv::ByteRecords<'a, StreamReader>,
+    csv_records: csv::ByteRecordsIter<'a, StreamReader>,
     line_n: u64,
 }
 
@@ -122,16 +123,20 @@ where
             .map_err(|error| format_err!("Invalid CP1251 string ({})", error))
     }
 
-    fn str_rec_from_cp1251(raw_vec: &[Vec<u8>]) -> Result<StringRecord, failure::Error> {
-        ensure!(raw_vec.len() == 6, "Invalid number of fields: {} != 6", raw_vec.len());
+    fn str_rec_from_cp1251(raw_record: &csv::ByteRecord) -> Result<StringRecord, failure::Error> {
+        ensure!(
+            raw_record.len() == 6,
+            "Invalid number of fields: {} != 6",
+            raw_record.len()
+        );
 
         Ok((
-            Self::str_from_cp1251(&raw_vec[0])?,
-            Self::str_from_cp1251(&raw_vec[1])?,
-            Self::str_from_cp1251(&raw_vec[2])?,
-            Self::str_from_cp1251(&raw_vec[3])?,
-            Self::str_from_cp1251(&raw_vec[4])?,
-            Self::str_from_cp1251(&raw_vec[5])?,
+            Self::str_from_cp1251(&raw_record[0])?,
+            Self::str_from_cp1251(&raw_record[1])?,
+            Self::str_from_cp1251(&raw_record[2])?,
+            Self::str_from_cp1251(&raw_record[3])?,
+            Self::str_from_cp1251(&raw_record[4])?,
+            Self::str_from_cp1251(&raw_record[5])?,
         ))
     }
 
