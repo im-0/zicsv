@@ -123,12 +123,23 @@ enum Command {
 
     #[structopt(name = "search", about = "Search blocked addresses")]
     Search {
-        #[structopt(name = "OUTPUT FORMAT", short = "O", long = "output-format", default_value = "human-readable",
-                    help = "Format of the search result", raw(possible_values = "&OutputFormat::variants()"))]
+        #[structopt(
+            name = "OUTPUT FORMAT",
+            short = "O",
+            long = "output-format",
+            default_value = "human-readable",
+            help = "Format of the search result",
+            raw(possible_values = "&OutputFormat::variants()")
+        )]
         output_format: OutputFormat,
 
-        #[structopt(name = "DEPTH LIMIT", short = "D", long = "dns-depth-limit", default_value = "10",
-                    help = "Limit maximum depth of DNS name resolution")]
+        #[structopt(
+            name = "DEPTH LIMIT",
+            short = "D",
+            long = "dns-depth-limit",
+            default_value = "10",
+            help = "Limit maximum depth of DNS name resolution"
+        )]
         dns_depth_limit: usize,
 
         #[structopt(name = "ADDRESS", help = "List of addresses to search for")]

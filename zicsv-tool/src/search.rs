@@ -124,9 +124,10 @@ impl AddressWithDepth {
         };
 
         if next_depth > max_depth {
-            vec![
-                Err(format_err!("Exceeded maximum DNS resolution depth of {}", max_depth)),
-            ]
+            vec![Err(format_err!(
+                "Exceeded maximum DNS resolution depth of {}",
+                max_depth
+            ))]
         } else {
             extractor(self.inner())
                 .into_iter()
